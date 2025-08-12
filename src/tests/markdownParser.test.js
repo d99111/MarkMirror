@@ -1,7 +1,7 @@
 // Unit tests for MarkMirror Markdown Parser
 // Simple test framework for browser environment
 
-import { MarkdownParser } from '../src/utils/markdownParser.js';
+import { MarkdownParser } from '../utils/markdownParser.js';
 
 class TestRunner {
     constructor() {
