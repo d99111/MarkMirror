@@ -1,0 +1,161 @@
+{
+  "name": "MarkMirror Mobile - Markdown Editor",
+  "short_name": "MarkMirror",
+  "description": "Мощный Markdown-редактор с двухпанельным интерфейсом и живым превью",
+  "version": "1.0.0",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#007bff",
+  "orientation": "any",
+  "scope": "/",
+  "lang": "ru",
+  "dir": "ltr",
+  
+  "icons": [
+    {
+      "src": "icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  
+  "categories": [
+    "productivity",
+    "utilities",
+    "education"
+  ],
+  
+  "screenshots": [
+    {
+      "src": "screenshots/desktop-1.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Главный интерфейс MarkMirror на десктопе"
+    },
+    {
+      "src": "screenshots/mobile-1.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Мобильный интерфейс MarkMirror"
+    }
+  ],
+  
+  "shortcuts": [
+    {
+      "name": "Новый документ",
+      "short_name": "Новый",
+      "description": "Создать новый Markdown документ",
+      "url": "/?action=new",
+      "icons": [
+        {
+          "src": "icons/shortcut-new.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Импорт файла",
+      "short_name": "Импорт",
+      "description": "Импортировать .md файл",
+      "url": "/?action=import",
+      "icons": [
+        {
+          "src": "icons/shortcut-import.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Аналитика",
+      "short_name": "Статистика",
+      "description": "Просмотр статистики использования",
+      "url": "/?action=analytics",
+      "icons": [
+        {
+          "src": "icons/shortcut-analytics.png",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ],
+  
+  "related_applications": [],
+  "prefer_related_applications": false,
+  
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  
+  "file_handlers": [
+    {
+      "action": "/",
+      "accept": {
+        "text/markdown": [".md", ".markdown"],
+        "text/plain": [".txt"]
+      }
+    }
+  ],
+  
+  "share_target": {
+    "action": "/",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
+  
+  "protocol_handlers": [
+    {
+      "protocol": "web+markdown",
+      "url": "/?markdown=%s"
+    }
+  ]
+}

@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MarkMirror Mobile - Markdown Editor</title>
+
+    <!-- External Libraries -->
+    <!-- CodeMirror 6 - Using importmap for better module resolution -->
+    <script type="importmap">
+    {
+        "imports": {
+            "@codemirror/state": "https://cdn.skypack.dev/@codemirror/state",
+            "@codemirror/view": "https://cdn.skypack.dev/@codemirror/view",
+            "@codemirror/basic-setup": "https://cdn.skypack.dev/@codemirror/basic-setup",
+            "@codemirror/lang-markdown": "https://cdn.skypack.dev/@codemirror/lang-markdown",
+            "@codemirror/theme-one-dark": "https://cdn.skypack.dev/@codemirror/theme-one-dark",
+            "@codemirror/autocomplete": "https://cdn.skypack.dev/@codemirror/autocomplete"
+        }
+    }
+    </script>
+
+    <!-- Highlight.js for code syntax highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" media="(prefers-color-scheme: dark)">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+    <!-- DOMPurify for HTML sanitization -->
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.5/dist/purify.min.js"></script>
+
+    <!-- Marked.js for comparison (optional) -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
+
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="src/style.css">
+</head>
+<body>
+    <!-- Main Container -->
+    <div id="app" class="app">
+        <!-- Header with controls -->
+        <header class="header">
+            <div class="header-left">
+                <h1 class="app-title">MarkMirror Mobile</h1>
+                <div class="file-controls">
+                    <input type="file" id="import-file" accept=".md,.txt" style="display: none;">
+                    <button id="import-btn" class="btn btn-secondary" title="Импорт .md файла">
+                        📁 Импорт
+                    </button>
+                    <button id="export-md-btn" class="btn btn-secondary" title="Экспорт в .md">
+                        💾 .md
+                    </button>
+                    <button id="export-html-btn" class="btn btn-secondary" title="Экспорт в .html">
+                        🌐 .html
+                    </button>
+                    <button id="clear-btn" class="btn btn-danger" title="Очистить редактор">
+                        🗑️ Очистить
+                    </button>
+                </div>
+            </div>
+
+            <div class="header-right">
+                <div class="controls">
+                    <!-- Theme toggle -->
+                    <button id="theme-toggle" class="btn btn-icon" title="Переключить тему">
+                        🌙
+                    </button>
+
+                    <!-- Settings toggle -->
+                    <button id="settings-toggle" class="btn btn-icon" title="Настройки">
+                        ⚙️
+                    </button>
+
+                    <!-- Analytics toggle -->
+                    <button id="analytics-toggle" class="btn btn-icon" title="Аналитика">
+                        📊
+                    </button>
+
+                    <!-- Help toggle -->
+                    <button id="help-toggle" class="btn btn-icon" title="Справка">
+                        ❓
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Settings Panel -->
+        <div id="settings-panel" class="settings-panel hidden">
+            <div class="settings-content">
+                <h3>Настройки</h3>
+
+                <div class="setting-group">
+                    <label>
+                        <input type="checkbox" id="auto-complete-toggle" checked>
+                        Автодополнение Markdown
+                    </label>
+                </div>
+
+                <div class="setting-group">
+                    <label>
+                        <input type="checkbox" id="sync-scroll-toggle">
+                        Синхронная прокрутка
+                    </label>
+                </div>
+
+                <div class="setting-group">
+                    <label>
+                        <input type="checkbox" id="use-external-parser-toggle">
+                        Использовать внешний парсер (Marked.js)
+                    </label>
+                </div>
+
+                <div class="setting-group">
+                    <label>
+                        <input type="checkbox" id="embed-styles-toggle" checked>
+                        Встраивать стили при экспорте HTML
+                    </label>
+                </div>
+
+                <div class="setting-group">
+                    <label>
+                        <input type="checkbox" id="markdown-highlight-toggle" checked>
+                        Подсветка Markdown в Plain Text
+                    </label>
+                </div>
+
+                <div class="setting-group">
+                    <label for="preview-zoom">Масштаб превью:</label>
+                    <input type="range" id="preview-zoom" min="50" max="200" value="100" step="25">
+                    <span id="zoom-value">100%</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Mobile Tab Navigation (visible on small screens) -->
+            <div class="mobile-tabs">
+                <button class="tab-btn active" data-tab="editor">Редактор</button>
+                <button class="tab-btn" data-tab="preview">Превью</button>
+            </div>
+
+            <!-- Editor Panel -->
+            <div class="editor-panel panel">
+                <div class="panel-header">
+                    <h3>Markdown Редактор</h3>
+                    <div class="panel-controls">
+                        <span id="char-count" class="char-count">0 символов</span>
+                    </div>
+                </div>
+                <div id="editor-container" class="editor-container"></div>
+            </div>
+
+            <!-- Preview Panel -->
+            <div class="preview-panel panel">
+                <div class="panel-header">
+                    <h3>Превью</h3>
+                    <div class="panel-controls">
+                        <button id="preview-mode-toggle" class="btn btn-small" title="Переключить режим превью">
+                            📱 Мобильный вид
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Preview Content -->
+                <div class="preview-content">
+                    <!-- Plain Text Preview (Top) -->
+                    <div class="preview-section plain-text-preview">
+                        <div class="preview-section-header">
+                            <h4>📝 Plain Text + Статистика</h4>
+                        </div>
+                        <div id="plain-text-output" class="preview-output"></div>
+                    </div>
+
+                    <!-- HTML Preview (Bottom) -->
+                    <div class="preview-section html-preview">
+                        <div class="preview-section-header">
+                            <h4>HTML Рендер</h4>
+                        </div>
+                        <div id="html-output" class="preview-output markdown-body"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Help Modal -->
+        <div id="help-modal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Справка по Markdown</h3>
+                    <button id="close-help" class="btn btn-icon">✕</button>
+                </div>
+                <div class="modal-body">
+                    <div id="help-content" class="help-content">
+                        <!-- Help content will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading indicator -->
+        <div id="loading" class="loading hidden">
+            <div class="spinner"></div>
+            <span>Загрузка...</span>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module" src="src/script.js"></script>
+</body>
+</html>
