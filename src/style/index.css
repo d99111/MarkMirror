@@ -834,6 +834,102 @@ body {
     min-height: 150px;
 }
 
+/* PWA Styles */
+.pwa-install-btn {
+    background: linear-gradient(135deg, var(--accent-color), #0056b3);
+    color: white;
+    border: none;
+    animation: pulse 2s infinite;
+}
+
+.pwa-install-btn:hover {
+    background: linear-gradient(135deg, #0056b3, var(--accent-color));
+    transform: translateY(-1px);
+}
+
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(0, 123, 255, 0.4); }
+    70% { box-shadow: 0 0 0 10px rgba(0, 123, 255, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(0, 123, 255, 0); }
+}
+
+.pwa-indicator {
+    margin-left: var(--spacing-sm);
+    font-size: 0.8em;
+    opacity: 0.8;
+}
+
+.pwa-update-notification {
+    position: fixed;
+    top: var(--header-height);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--accent-color);
+    color: white;
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-lg);
+    z-index: 2000;
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+.update-content {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    white-space: nowrap;
+}
+
+.update-content .btn {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.update-content .btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.update-content .btn-secondary {
+    background: transparent;
+}
+
+/* PWA specific responsive adjustments */
+@media (display-mode: standalone) {
+    .header {
+        padding-top: env(safe-area-inset-top, 0);
+    }
+
+    .main-content {
+        padding-bottom: env(safe-area-inset-bottom, 0);
+    }
+
+    /* Hide install button when in standalone mode */
+    .pwa-install-btn {
+        display: none !important;
+    }
+}
+
+/* iOS specific adjustments */
+@supports (-webkit-touch-callout: none) {
+    @media (display-mode: standalone) {
+        .header {
+            padding-top: max(env(safe-area-inset-top), 20px);
+        }
+    }
+}
+
 /* Utility classes */
 .hidden {
     display: none !important;

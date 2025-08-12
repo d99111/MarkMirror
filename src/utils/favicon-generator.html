@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Favicon Generator for MarkMirror</title>
+</head>
+<body>
+    <h1>Favicon Generator</h1>
+    <canvas id="favicon" width="32" height="32"></canvas>
+    <br><br>
+    <button onclick="downloadFavicon()">Download favicon.ico</button>
+    
+    <script>
+        const canvas = document.getElementById('favicon');
+        const ctx = canvas.getContext('2d');
+        
+        // Create favicon
+        function createFavicon() {
+            // Background
+            ctx.fillStyle = '#007bff';
+            ctx.fillRect(0, 0, 32, 32);
+            
+            // Letter M
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 20px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('M', 16, 16);
+        }
+        
+        function downloadFavicon() {
+            canvas.toBlob(blob => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'favicon.ico';
+                a.click();
+                URL.revokeObjectURL(url);
+            });
+        }
+        
+        createFavicon();
+    </script>
+</body>
+</html>

@@ -1,12 +1,13 @@
 // MarkMirror Mobile - Main Application
 // A powerful Markdown editor with dual-panel interface
 
-import { PreviewPanel } from './ui/preview.js';
-import { Storage } from './utils/storage.js';
-import { FileHandler } from './utils/fileHandler.js';
-import { SimpleEditor } from './ui/simpleEditor.js';
-import { Analytics } from './utils/analytics.js';
-import { AnalyticsPanel } from './ui/analyticsPanel.js';
+import { PreviewPanel } from '../ui/preview.js';
+import { Storage } from '../utils/storage.js';
+import { FileHandler } from '../utils/fileHandler.js';
+import { SimpleEditor } from '../ui/simpleEditor.js';
+import { Analytics } from '../utils/analytics.js';
+import { AnalyticsPanel } from '../ui/analyticsPanel.js';
+import { PWAManager } from '../utils/pwa.js';
 
 class MarkMirrorApp {
     constructor() {
@@ -16,6 +17,7 @@ class MarkMirrorApp {
         this.fileHandler = new FileHandler();
         this.analytics = new Analytics();
         this.analyticsPanel = new AnalyticsPanel(this.analytics);
+        this.pwaManager = new PWAManager();
         this.settings = this.storage.loadSettings();
         this.autoSaveTimer = null;
         this.currentTheme = this.settings.theme;
@@ -103,7 +105,7 @@ class MarkMirrorApp {
         // Try to use CodeMirror first, fallback to simple editor
         try {
             // Dynamically import CodeMirror editor
-            const { MarkdownEditor } = await import('./ui/editor.js');
+            const { MarkdownEditor } = await import('../ui/editor.js');
             this.editor = new MarkdownEditor(container, {
                 theme: this.currentTheme,
                 autoComplete: this.settings.autoComplete,
@@ -1000,7 +1002,29 @@ MarkMirror отслеживает вашу работу с документам�
 - **Ctrl/Cmd + Shift + E** - Экспорт в HTML
 - **F1** - Справка
 - **F2** - Аналитика
-- **Esc** - Закрыть модальные окна`;
+- **Esc** - Закрыть модальные окна
+
+## 📱 Установка приложения (PWA)
+
+MarkMirror можно установить как обычное приложение:
+
+### Установка:
+- Нажмите кнопку **📱 Установить приложение** в заголовке
+- Или используйте меню браузера "Установить приложение"
+- На мобильных: "Добавить на главный экран"
+
+### Преимущества установки:
+- 🚀 Быстрый запуск с рабочего стола
+- 📱 Работа в полноэкранном режиме
+- 💾 Офлайн доступ к функциям
+- 🔔 Уведомления об обновлениях
+- 📂 Ярлыки для быстрых действий
+
+### Офлайн режим:
+- Приложение работает без интернета
+- Все функции редактирования доступны
+- Автосохранение в локальном хранилище
+- Синхронизация при восстановлении связи`;
 
         // Parse and display help content
         if (this.preview) {
