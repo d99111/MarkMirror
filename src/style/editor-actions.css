@@ -3,9 +3,9 @@
  * Designed to integrate seamlessly with existing projects
  */
 
-/* Action Bar positioned relative to editor-container */
+/* Action Bar floating inside editor-container */
 .editor-container {
-    position: relative; /* Ensure container is positioned for absolute children */
+    position: relative; /* Enable absolute positioning for action bar */
 }
 
 .editor-actions-bar {
@@ -14,7 +14,7 @@
     left: 50%;
     transform: translateX(-50%);
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
     gap: 8px;
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
@@ -22,10 +22,12 @@
     padding: 8px 12px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
     border: 1px solid rgba(0, 0, 0, 0.1);
-    z-index: 100;
     transition: all 0.3s ease;
     max-width: 280px;
     min-width: 240px;
+    width: fit-content;
+    z-index: 100;
+    pointer-events: auto;
 }
 
 .editor-actions-bar.hidden {
@@ -232,7 +234,7 @@
 
 @media (max-width: 768px) {
     .editor-actions-bar {
-        bottom: 10px;
+        bottom: 8px;
         padding: 6px;
         gap: 6px;
         grid-template-columns: repeat(3, 1fr);
@@ -263,7 +265,7 @@
 
 @media (max-width: 480px) {
     .editor-actions-bar {
-        bottom: 8px;
+        bottom: 6px;
         padding: 4px;
         gap: 4px;
         grid-template-columns: repeat(3, 1fr);

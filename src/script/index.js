@@ -106,11 +106,16 @@ class MarkMirrorApp {
       throw new Error('Editor container not found');
     }
 
+    // Create wrapper for editor to separate it from action bar
+    const editorWrapper = document.createElement('div');
+    editorWrapper.className = 'editor-wrapper';
+    container.appendChild(editorWrapper);
+
     // Try to use CodeMirror first, fallback to simple editor
     try {
       // Dynamically import CodeMirror editor
       const { MarkdownEditor } = await import('../ui/editor.js');
-      this.editor = new MarkdownEditor(container, {
+      this.editor = new MarkdownEditor(editorWrapper, {
         theme: this.currentTheme,
         autoComplete: this.settings.autoComplete,
         onChange: content => this.handleContentChange(content),
@@ -120,7 +125,7 @@ class MarkMirrorApp {
     } catch (error) {
       console.warn('CodeMirror failed to load, using simple editor:', error);
       // Use simple editor as fallback
-      this.editor = new SimpleEditor(container, {
+      this.editor = new SimpleEditor(editorWrapper, {
         theme: this.currentTheme,
         autoComplete: this.settings.autoComplete,
         onChange: content => this.handleContentChange(content),
@@ -184,24 +189,24 @@ class MarkMirrorApp {
           let editorSelector = '';
 
           // Try to find CodeMirror editor first
-          const cmEditor = document.querySelector('#editor-container .cm-editor');
+          const cmEditor = document.querySelector('#editor-container .editor-wrapper .cm-editor');
           if (cmEditor) {
             editorElement = cmEditor;
-            editorSelector = '#editor-container .cm-editor';
+            editorSelector = '#editor-container .editor-wrapper .cm-editor';
             console.log('Found CodeMirror editor');
           } else {
             // Try to find SimpleEditor (textarea)
-            const textarea = document.querySelector('#editor-container textarea');
+            const textarea = document.querySelector('#editor-container .editor-wrapper textarea');
             if (textarea) {
               editorElement = textarea;
-              editorSelector = '#editor-container textarea';
+              editorSelector = '#editor-container .editor-wrapper textarea';
               console.log('Found SimpleEditor textarea');
             } else {
-              // Fallback: try to find any textarea or contenteditable in editor container
-              const fallback = document.querySelector('#editor-container textarea, #editor-container [contenteditable]');
+              // Fallback: try to find any textarea or contenteditable in editor wrapper
+              const fallback = document.querySelector('#editor-container .editor-wrapper textarea, #editor-container .editor-wrapper [contenteditable]');
               if (fallback) {
                 editorElement = fallback;
-                editorSelector = '#editor-container textarea, #editor-container [contenteditable]';
+                editorSelector = '#editor-container .editor-wrapper textarea, #editor-container .editor-wrapper [contenteditable]';
                 console.log('Found fallback editor element');
               }
             }
@@ -243,6 +248,11 @@ class MarkMirrorApp {
                 this.createActionBarManually();
               } else {
                 console.log('Action bar successfully created and configured');
+
+                // Apply settings to main settings panel
+                if (window.EditorActions && window.EditorActions.applySettingsToDOM) {
+                  window.EditorActions.applySettingsToDOM();
+                }
               }
             }, 500);
           } else {
@@ -323,7 +333,7 @@ class MarkMirrorApp {
       </button>
     `;
 
-    // Append to editor container instead of body
+    // Append to editor container at the end (not absolutely positioned)
     editorContainer.appendChild(actionBar);
 
     // Setup event listeners
@@ -664,10 +674,55 @@ class MarkMirrorApp {
       });
     }
 
+    // Action bar visible toggle
+    const actionBarToggle = document.querySelector('input[name="actionBarVisible"]');
+    if (actionBarToggle) {
+      // Set initial state from EditorActions
+      if (window.EditorActions) {
+        actionBarToggle.checked = window.EditorActions.get('actionBarVisible') !== false;
+      } else {
+        actionBarToggle.checked = true; // Default to visible
+      }
+
+      actionBarToggle.addEventListener('change', e => {
+        const isVisible = e.target.checked;
+        console.log('Action bar visibility changed to:', isVisible);
+
+        // Update EditorActions setting
+        if (window.EditorActions) {
+          window.EditorActions.set({ actionBarVisible: isVisible });
+        }
+
+        // Toggle action bar visibility
+        this.toggleActionBar(isVisible);
+
+        // Track setting change
+        if (this.analytics) {
+          this.analytics.trackSettingChange('actionBarVisible', !isVisible, isVisible);
+        }
+      });
+    }
+
     // Reset settings button
     const resetSettingsBtn = document.getElementById('reset-settings');
     if (resetSettingsBtn) {
       resetSettingsBtn.addEventListener('click', () => this.resetSettings());
+    }
+  }
+
+  // Toggle action bar visibility
+  toggleActionBar(isVisible) {
+    const actionBar = document.querySelector('.editor-actions-bar');
+    if (actionBar) {
+      if (isVisible) {
+        actionBar.classList.remove('hidden');
+        console.log('Action bar shown');
+      } else {
+        actionBar.classList.add('hidden');
+        console.log('Action bar hidden');
+      }
+    } else {
+      console.warn('Action bar not found for toggle');
     }
   }
 
@@ -1110,7 +1165,12 @@ Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed 
     // Action bar visible toggle
     const actionBarToggle = document.querySelector('input[name="actionBarVisible"]');
     if (actionBarToggle) {
-      actionBarToggle.checked = true; // Default to visible
+      // Read from EditorActions if available
+      if (window.EditorActions) {
+        actionBarToggle.checked = window.EditorActions.get('actionBarVisible') !== false;
+      } else {
+        actionBarToggle.checked = true; // Default to visible
+      }
     }
 
     // Highlight color
