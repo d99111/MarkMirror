@@ -46,6 +46,7 @@ class MarkMirrorApp {
       this.initializePreview();
       this.initializeUI();
       this.initializeSearchReplace();
+      this.initializeEditorActions();
       this.loadSavedContent();
       this.setupAutoSave();
 
@@ -162,10 +163,353 @@ class MarkMirrorApp {
   initializeSearchReplace() {
     if (this.editor) {
       this.searchReplace = new SearchReplace(this.editor);
+
+      // Make search available globally for EditorActions integration
+      window.EditorSearch = this.searchReplace;
+
       console.log('Search and Replace initialized');
     } else {
       console.warn('Cannot initialize Search and Replace: editor not available');
     }
+  }
+
+  // Initialize editor actions (floating action bar and settings persistence)
+  initializeEditorActions() {
+    try {
+      // Wait for EditorActions to be available and editor to be initialized
+      setTimeout(() => {
+        if (typeof window.EditorActions !== 'undefined' && this.editor) {
+          // Find the actual editor element in the DOM
+          let editorElement = null;
+          let editorSelector = '';
+
+          // Try to find CodeMirror editor first
+          const cmEditor = document.querySelector('#editor-container .cm-editor');
+          if (cmEditor) {
+            editorElement = cmEditor;
+            editorSelector = '#editor-container .cm-editor';
+            console.log('Found CodeMirror editor');
+          } else {
+            // Try to find SimpleEditor (textarea)
+            const textarea = document.querySelector('#editor-container textarea');
+            if (textarea) {
+              editorElement = textarea;
+              editorSelector = '#editor-container textarea';
+              console.log('Found SimpleEditor textarea');
+            } else {
+              // Fallback: try to find any textarea or contenteditable in editor container
+              const fallback = document.querySelector('#editor-container textarea, #editor-container [contenteditable]');
+              if (fallback) {
+                editorElement = fallback;
+                editorSelector = '#editor-container textarea, #editor-container [contenteditable]';
+                console.log('Found fallback editor element');
+              }
+            }
+          }
+
+          if (editorElement) {
+            window.EditorActions.init({
+              editorSelector: editorSelector,
+              settingsSelector: '#settings-content',
+              searchApi: window.EditorSearch // Use global reference
+            });
+
+            // Setup event listeners for EditorActions
+            this.setupEditorActionsEvents();
+
+            console.log('EditorActions initialized successfully with selector:', editorSelector);
+            console.log('Editor element found:', editorElement);
+
+            // Double-check that action bar was created
+            setTimeout(() => {
+              const actionBar = document.querySelector('.editor-actions-bar');
+              const editorContainer = document.getElementById('editor-container');
+
+              console.log('=== Action Bar Check ===');
+              console.log('Action bar found:', !!actionBar);
+              console.log('Editor container found:', !!editorContainer);
+
+              if (actionBar) {
+                console.log('Action bar parent:', actionBar.parentElement?.id || actionBar.parentElement?.className);
+                console.log('Action bar classes:', actionBar.className);
+                console.log('Action bar visible:', !actionBar.classList.contains('hidden'));
+                console.log('Action bar position:', getComputedStyle(actionBar).position);
+                console.log('Action bar bottom:', getComputedStyle(actionBar).bottom);
+                console.log('Action bar buttons:', actionBar.querySelectorAll('.action-btn').length);
+              }
+
+              if (!actionBar) {
+                console.warn('Action bar not found after initialization, attempting manual creation');
+                this.createActionBarManually();
+              } else {
+                console.log('Action bar successfully created and configured');
+              }
+            }, 500);
+          } else {
+            console.error('No editor element found for EditorActions');
+            console.log('Available elements in #editor-container:',
+              document.querySelector('#editor-container')?.innerHTML);
+          }
+        } else {
+          console.warn('EditorActions not available or editor not ready');
+        }
+      }, 1000); // Increased delay to ensure editor is fully initialized
+    } catch (error) {
+      console.error('Failed to initialize EditorActions:', error);
+    }
+  }
+
+  // Setup event listeners for EditorActions
+  setupEditorActionsEvents() {
+    const editorContainer = document.getElementById('editor-container');
+    if (!editorContainer) return;
+
+    // Listen for paste events
+    editorContainer.addEventListener('editoractions:pasted', (e) => {
+      console.log('Text pasted via EditorActions:', e.detail.text.length, 'characters');
+      // Trigger content change handling
+      this.handleContentChange(this.editor.getContent());
+    });
+
+    // Listen for copy events
+    editorContainer.addEventListener('editoractions:copied', (e) => {
+      console.log('Text copied via EditorActions:', e.detail.wasSelection ? 'selection' : 'all content');
+    });
+
+    // Listen for clear events
+    editorContainer.addEventListener('editoractions:cleared', (e) => {
+      console.log('Content cleared via EditorActions:', e.detail.type);
+      // Trigger content change handling
+      this.handleContentChange(this.editor.getContent());
+    });
+  }
+
+  // Manual action bar creation as fallback
+  createActionBarManually() {
+    // Check if action bar already exists
+    if (document.querySelector('.editor-actions-bar')) {
+      return;
+    }
+
+    console.log('Creating action bar manually...');
+
+    // Find editor container
+    const editorContainer = document.getElementById('editor-container');
+    if (!editorContainer) {
+      console.error('Editor container not found for manual action bar creation');
+      return;
+    }
+
+    const actionBar = document.createElement('div');
+    actionBar.className = 'editor-actions-bar';
+    actionBar.innerHTML = `
+      <button type="button" class="action-btn paste-btn" aria-label="Paste from clipboard" tabindex="0">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M19,20H5V4H7V7H17V4H19M12,2A1,1 0 0,1 13,3A1,1 0 0,1 12,4A1,1 0 0,1 11,3A1,1 0 0,1 12,2M19,2H14.82C14.4,0.84 13.3,0 12,0C10.7,0 9.6,0.84 9.18,2H5A2,2 0 0,0 3,4V20A2,2 0 0,0 5,22H19A2,2 0 0,0 21,20V4A2,2 0 0,0 19,2Z"/>
+        </svg>
+        <span>Paste</span>
+      </button>
+      <button type="button" class="action-btn copy-btn" aria-label="Copy selected text" tabindex="0">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z"/>
+        </svg>
+        <span>Copy</span>
+      </button>
+      <button type="button" class="action-btn clear-btn" aria-label="Clear content" tabindex="0">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/>
+        </svg>
+        <span>Clear</span>
+      </button>
+    `;
+
+    // Append to editor container instead of body
+    editorContainer.appendChild(actionBar);
+
+    // Setup event listeners
+    this.setupManualActionBarListeners(actionBar);
+
+    console.log('Manual action bar created successfully in editor container');
+  }
+
+  // Setup listeners for manually created action bar
+  setupManualActionBarListeners(actionBar) {
+    const pasteBtn = actionBar.querySelector('.paste-btn');
+    const copyBtn = actionBar.querySelector('.copy-btn');
+    const clearBtn = actionBar.querySelector('.clear-btn');
+
+    if (pasteBtn) {
+      pasteBtn.addEventListener('click', () => this.handleManualPaste());
+    }
+
+    if (copyBtn) {
+      copyBtn.addEventListener('click', () => this.handleManualCopy());
+    }
+
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => this.handleManualClear());
+    }
+  }
+
+  // Manual action handlers
+  async handleManualPaste() {
+    try {
+      if (!navigator.clipboard) {
+        throw new Error('Clipboard API not available. Please use HTTPS.');
+      }
+
+      const text = await navigator.clipboard.readText();
+
+      // Insert text into editor
+      if (this.editor.view) {
+        // CodeMirror
+        const selection = this.editor.view.state.selection.main;
+        this.editor.view.dispatch({
+          changes: { from: selection.from, to: selection.to, insert: text }
+        });
+      } else if (this.editor.textarea) {
+        // SimpleEditor
+        const start = this.editor.textarea.selectionStart;
+        const end = this.editor.textarea.selectionEnd;
+        const value = this.editor.textarea.value;
+
+        this.editor.textarea.value = value.substring(0, start) + text + value.substring(end);
+        this.editor.textarea.selectionStart = this.editor.textarea.selectionEnd = start + text.length;
+        this.editor.textarea.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+
+      this.showToast('Text pasted successfully', 'success');
+      this.handleContentChange(this.editor.getContent());
+
+    } catch (error) {
+      console.error('Paste error:', error);
+      this.showToast('Failed to paste: ' + error.message, 'error');
+    }
+  }
+
+  async handleManualCopy() {
+    try {
+      if (!navigator.clipboard) {
+        throw new Error('Clipboard API not available. Please use HTTPS.');
+      }
+
+      let textToCopy = '';
+
+      if (this.editor.view) {
+        // CodeMirror
+        const selection = this.editor.view.state.selection.main;
+        if (selection.from !== selection.to) {
+          textToCopy = this.editor.view.state.doc.sliceString(selection.from, selection.to);
+        } else {
+          textToCopy = this.editor.view.state.doc.toString();
+        }
+      } else if (this.editor.textarea) {
+        // SimpleEditor
+        const start = this.editor.textarea.selectionStart;
+        const end = this.editor.textarea.selectionEnd;
+        if (start !== end) {
+          textToCopy = this.editor.textarea.value.substring(start, end);
+        } else {
+          textToCopy = this.editor.textarea.value;
+        }
+      }
+
+      await navigator.clipboard.writeText(textToCopy);
+
+      const message = textToCopy.length < this.editor.getContent().length ? 'Selected text copied' : 'All content copied';
+      this.showToast(message, 'success');
+
+    } catch (error) {
+      console.error('Copy error:', error);
+      this.showToast('Failed to copy: ' + error.message, 'error');
+    }
+  }
+
+  handleManualClear() {
+    let hasSelection = false;
+
+    if (this.editor.view) {
+      // CodeMirror
+      const selection = this.editor.view.state.selection.main;
+      hasSelection = selection.from !== selection.to;
+
+      if (hasSelection) {
+        this.editor.view.dispatch({
+          changes: { from: selection.from, to: selection.to, insert: '' }
+        });
+        this.showToast('Selection cleared', 'success');
+      }
+    } else if (this.editor.textarea) {
+      // SimpleEditor
+      const start = this.editor.textarea.selectionStart;
+      const end = this.editor.textarea.selectionEnd;
+      hasSelection = start !== end;
+
+      if (hasSelection) {
+        const value = this.editor.textarea.value;
+        this.editor.textarea.value = value.substring(0, start) + value.substring(end);
+        this.editor.textarea.selectionStart = this.editor.textarea.selectionEnd = start;
+        this.editor.textarea.dispatchEvent(new Event('input', { bubbles: true }));
+        this.showToast('Selection cleared', 'success');
+      }
+    }
+
+    if (!hasSelection) {
+      // Clear all content with confirmation
+      if (confirm('Are you sure you want to clear all content?')) {
+        if (this.editor.view) {
+          this.editor.view.dispatch({
+            changes: { from: 0, to: this.editor.view.state.doc.length, insert: '' }
+          });
+        } else if (this.editor.textarea) {
+          this.editor.textarea.value = '';
+          this.editor.textarea.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+
+        this.showToast('All content cleared', 'success');
+      }
+    }
+
+    this.handleContentChange(this.editor.getContent());
+  }
+
+  // Simple toast notification
+  showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `editor-actions-toast toast-${type}`;
+    toast.textContent = message;
+    toast.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 12px 16px;
+      border-radius: 8px;
+      color: white;
+      font-size: 14px;
+      font-weight: 500;
+      z-index: 1001;
+      opacity: 0;
+      transform: translateX(100%);
+      transition: all 0.3s ease;
+      max-width: 300px;
+      word-wrap: break-word;
+      background: ${type === 'success' ? '#28a745' : type === 'error' ? '#dc3545' : '#17a2b8'};
+    `;
+
+    document.body.appendChild(toast);
+
+    // Trigger animation
+    setTimeout(() => {
+      toast.style.opacity = '1';
+      toast.style.transform = 'translateX(0)';
+    }, 10);
+
+    // Remove after delay
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateX(100%)';
+      setTimeout(() => toast.remove(), 300);
+    }, 3000);
   }
 
   // Setup file control handlers
@@ -318,6 +662,12 @@ class MarkMirrorApp {
           this.analytics.trackSettingChange('markdownHighlight', oldValue, e.target.checked);
         }
       });
+    }
+
+    // Reset settings button
+    const resetSettingsBtn = document.getElementById('reset-settings');
+    if (resetSettingsBtn) {
+      resetSettingsBtn.addEventListener('click', () => this.resetSettings());
     }
   }
 
@@ -646,6 +996,128 @@ Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed 
   // Save settings
   saveSettings() {
     this.storage.saveSettings(this.settings);
+  }
+
+  // Reset all settings to defaults
+  resetSettings() {
+    const confirmReset = confirm(
+      'Вы уверены, что хотите сбросить все настройки к значениям по умолчанию?\n\n' +
+      'Это действие нельзя отменить. Все ваши настройки будут потеряны.'
+    );
+
+    if (!confirmReset) {
+      return;
+    }
+
+    try {
+      // Clear localStorage
+      localStorage.removeItem('markmirror.settings');
+      localStorage.removeItem('editor.settings');
+      localStorage.removeItem('editor.theme');
+
+      // Reset to default settings
+      this.settings = {
+        theme: 'light',
+        editorType: 'codemirror',
+        autoSave: true,
+        syncScroll: true,
+        useExternalParser: false,
+        embedStyles: true,
+        previewZoom: 100,
+        markdownHighlight: true
+      };
+
+      // Save default settings
+      this.saveSettings();
+
+      // Apply theme
+      this.applyTheme(this.settings.theme);
+
+      // Reinitialize UI with default settings
+      this.initializeSettingsUI();
+
+      // Reset EditorActions settings
+      if (window.EditorActions) {
+        window.EditorActions.set({
+          theme: 'light',
+          actionBarVisible: true,
+          highlightColor: '#ffeb3b'
+        });
+      }
+
+      // Show success message
+      alert('Настройки успешно сброшены к значениям по умолчанию!');
+
+      // Track analytics
+      if (this.analytics) {
+        this.analytics.trackFunctionUsage('settings_reset');
+      }
+
+      console.log('Settings reset to defaults');
+
+    } catch (error) {
+      console.error('Error resetting settings:', error);
+      alert('Произошла ошибка при сбросе настроек. Попробуйте обновить страницу.');
+    }
+  }
+
+  // Initialize settings UI with current values
+  initializeSettingsUI() {
+    // Theme toggle
+    const themeToggle = document.getElementById('theme-toggle');
+    if (themeToggle) {
+      themeToggle.checked = this.settings.theme === 'dark';
+    }
+
+    // Auto save toggle
+    const autoSaveToggle = document.getElementById('auto-save-toggle');
+    if (autoSaveToggle) {
+      autoSaveToggle.checked = this.settings.autoSave;
+    }
+
+    // Sync scroll toggle
+    const syncScrollToggle = document.getElementById('sync-scroll-toggle');
+    if (syncScrollToggle) {
+      syncScrollToggle.checked = this.settings.syncScroll;
+    }
+
+    // External parser toggle
+    const externalParserToggle = document.getElementById('use-external-parser-toggle');
+    if (externalParserToggle) {
+      externalParserToggle.checked = this.settings.useExternalParser;
+    }
+
+    // Embed styles toggle
+    const embedStylesToggle = document.getElementById('embed-styles-toggle');
+    if (embedStylesToggle) {
+      embedStylesToggle.checked = this.settings.embedStyles;
+    }
+
+    // Preview zoom
+    const previewZoom = document.getElementById('preview-zoom');
+    const zoomValue = document.getElementById('zoom-value');
+    if (previewZoom && zoomValue) {
+      previewZoom.value = this.settings.previewZoom;
+      zoomValue.textContent = `${this.settings.previewZoom}%`;
+    }
+
+    // Markdown highlight toggle
+    const markdownHighlightToggle = document.getElementById('markdown-highlight-toggle');
+    if (markdownHighlightToggle) {
+      markdownHighlightToggle.checked = this.settings.markdownHighlight;
+    }
+
+    // Action bar visible toggle
+    const actionBarToggle = document.querySelector('input[name="actionBarVisible"]');
+    if (actionBarToggle) {
+      actionBarToggle.checked = true; // Default to visible
+    }
+
+    // Highlight color
+    const highlightColorInput = document.querySelector('input[name="highlightColor"]');
+    if (highlightColorInput) {
+      highlightColorInput.value = '#ffeb3b'; // Default color
+    }
   }
 
   // Setup auto-save
@@ -1139,5 +1611,104 @@ window.debugSearchReplace = function() {
     app.searchReplace.debug();
   } else {
     console.error('SearchReplace not initialized');
+  }
+};
+
+// Global debug function for EditorActions
+window.debugEditorActions = function() {
+  if (window.EditorActions) {
+    console.log('EditorActions Settings:', window.EditorActions.get());
+    console.log('EditorActions State:', {
+      initialized: window.EditorActions.state?.initialized,
+      editorType: window.EditorActions.state?.editorType,
+      actionBarVisible: window.EditorActions.get('actionBarVisible'),
+      editor: window.EditorActions.state?.editor,
+      actionBar: window.EditorActions.state?.actionBar
+    });
+
+    // Check if action bar exists in DOM
+    const actionBar = document.querySelector('.editor-actions-bar');
+    console.log('Action bar in DOM:', actionBar);
+    if (actionBar) {
+      console.log('Action bar classes:', actionBar.className);
+      console.log('Action bar style:', actionBar.style.cssText);
+      console.log('Action bar buttons:', actionBar.querySelectorAll('.action-btn').length);
+    }
+
+    // Check editor element
+    const editorContainer = document.querySelector('#editor-container');
+    console.log('Editor container:', editorContainer);
+    if (editorContainer) {
+      console.log('Editor container children:', editorContainer.children);
+    }
+  } else {
+    console.error('EditorActions not available');
+  }
+};
+
+// Global test function for EditorActions
+window.testEditorActions = function() {
+  if (window.EditorActions) {
+    console.log('Testing EditorActions...');
+
+    // Test settings
+    const originalSettings = window.EditorActions.get();
+    console.log('Original settings:', originalSettings);
+
+    // Test setting update
+    window.EditorActions.set({ testSetting: 'test-value' });
+    console.log('After setting test value:', window.EditorActions.get('testSetting'));
+
+    // Test highlight color
+    console.log('Highlight color:', window.EditorActions.getHighlightColor());
+
+    console.log('EditorActions tests completed');
+  } else {
+    console.error('EditorActions not available');
+  }
+};
+
+// Global function to force create action bar
+window.forceCreateActionBar = function() {
+  if (app && app.createActionBarManually) {
+    app.createActionBarManually();
+    console.log('Action bar creation forced');
+  } else {
+    console.error('App not available or method not found');
+  }
+};
+
+// Global function to check action bar status
+window.checkActionBar = function() {
+  const actionBar = document.querySelector('.editor-actions-bar');
+  const editorContainer = document.getElementById('editor-container');
+
+  console.log('=== Action Bar Status ===');
+  console.log('Action bar exists:', !!actionBar);
+  console.log('Editor container exists:', !!editorContainer);
+
+  if (actionBar) {
+    console.log('Action bar parent:', actionBar.parentElement?.id || actionBar.parentElement?.className);
+    console.log('Action bar visible:', !actionBar.classList.contains('hidden'));
+    console.log('Action bar position:', actionBar.getBoundingClientRect());
+    console.log('Action bar styles:', {
+      position: getComputedStyle(actionBar).position,
+      bottom: getComputedStyle(actionBar).bottom,
+      left: getComputedStyle(actionBar).left,
+      transform: getComputedStyle(actionBar).transform,
+      display: getComputedStyle(actionBar).display,
+      zIndex: getComputedStyle(actionBar).zIndex
+    });
+    console.log('Action bar buttons:', actionBar.querySelectorAll('.action-btn').length);
+  }
+
+  if (editorContainer) {
+    console.log('Editor container position:', getComputedStyle(editorContainer).position);
+    console.log('Editor container children:', Array.from(editorContainer.children).map(el => el.className || el.tagName));
+  }
+
+  // Check settings
+  if (window.EditorActions) {
+    console.log('actionBarVisible setting:', window.EditorActions.get('actionBarVisible'));
   }
 };

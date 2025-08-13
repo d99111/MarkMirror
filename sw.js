@@ -1,9 +1,9 @@
 // Service Worker for MarkMirror Mobile PWA
 // Provides offline functionality and caching
 
-const CACHE_NAME = 'markmirror-v1.0.0';
-const STATIC_CACHE_NAME = 'markmirror-static-v1.0.0';
-const DYNAMIC_CACHE_NAME = 'markmirror-dynamic-v1.0.0';
+const CACHE_NAME = 'markmirror-v2.1.0';
+const STATIC_CACHE_NAME = 'markmirror-static-v2.1.0';
+const DYNAMIC_CACHE_NAME = 'markmirror-dynamic-v2.1.0';
 
 // Files to cache for offline use
 const STATIC_FILES = [
@@ -20,6 +20,9 @@ const STATIC_FILES = [
   '/src/utils/storage.js',
   '/src/utils/fileHandler.js',
   '/src/utils/analytics.js',
+  '/src/utils/editor-actions.js',
+  '/src/style/editor-actions.css',
+  '/src/ui/searchReplace.js',
   '/tests/index.html',
   '/tests/markdownParser.test.js'
 ];

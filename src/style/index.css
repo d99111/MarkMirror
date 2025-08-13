@@ -483,6 +483,34 @@ body {
   border-color: #d39e00;
 }
 
+.btn-danger {
+  background-color: var(--danger-color);
+  color: white;
+  border: 1px solid var(--danger-color);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--border-radius-sm);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+}
+
+.btn-danger:hover {
+  background-color: #c82333;
+  border-color: #bd2130;
+  transform: translateY(-1px);
+}
+
+.btn-danger:active {
+  transform: translateY(0);
+  background-color: #bd2130;
+}
+
 /* Keyboard shortcuts help */
 .search-shortcuts {
   margin-top: var(--spacing-md);
@@ -526,6 +554,95 @@ kbd {
   font-size: 0.8em;
   color: var(--text-primary);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* EditorActions Integration */
+.editor-actions-bar {
+  /* Override default styles to match app theme */
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-lg);
+}
+
+.action-btn {
+  color: var(--text-primary);
+  font-family: var(--font-family);
+}
+
+.action-btn:hover {
+  background: var(--bg-tertiary);
+}
+
+.action-btn:focus {
+  outline: 2px solid var(--accent-color);
+}
+
+.paste-btn:hover {
+  background: rgba(40, 167, 69, 0.1);
+  color: var(--success-color);
+}
+
+.copy-btn:hover {
+  background: rgba(0, 123, 255, 0.1);
+  color: var(--accent-color);
+}
+
+.clear-btn:hover {
+  background: rgba(220, 53, 69, 0.1);
+  color: var(--danger-color);
+}
+
+.editor-actions-toast {
+  font-family: var(--font-family);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+}
+
+.editor-actions-settings-badge .settings-toggle {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+}
+
+.editor-actions-settings-badge .settings-panel {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-lg);
+  font-family: var(--font-family);
+}
+
+.editor-actions-settings-badge .settings-panel label {
+  color: var(--text-primary);
+}
+
+/* Dark theme overrides for EditorActions */
+[data-theme="dark"] .editor-actions-bar {
+  background: var(--bg-secondary);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .action-btn {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .action-btn:hover {
+  background: var(--bg-tertiary);
+}
+
+[data-theme="dark"] .editor-actions-settings-badge .settings-toggle {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .editor-actions-settings-badge .settings-panel {
+  background: var(--bg-primary);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .editor-actions-settings-badge .settings-panel label {
+  color: var(--text-primary);
 }
 
 /* Search highlighting for SimpleEditor */
@@ -632,6 +749,7 @@ kbd {
 .editor-container {
   flex: 1;
   overflow: hidden;
+  position: relative; /* Enable absolute positioning for action bar */
 }
 
 /* CodeMirror overrides */

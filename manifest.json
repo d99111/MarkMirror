@@ -2,7 +2,7 @@
   "name": "MarkMirror Mobile - Markdown Editor",
   "short_name": "MarkMirror",
   "description": "Мощный Markdown-редактор с двухпанельным интерфейсом и живым превью",
-  "version": "1.0.0",
+  "version": "2.1.0",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

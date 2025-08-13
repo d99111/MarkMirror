@@ -1,0 +1,354 @@
+/**
+ * EditorActions CSS - Floating action bar and settings UI
+ * Designed to integrate seamlessly with existing projects
+ */
+
+/* Action Bar positioned relative to editor-container */
+.editor-container {
+    position: relative; /* Ensure container is positioned for absolute children */
+}
+
+.editor-actions-bar {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    padding: 8px 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    z-index: 100;
+    transition: all 0.3s ease;
+    max-width: 280px;
+    min-width: 240px;
+}
+
+.editor-actions-bar.hidden {
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(-50%) translateY(10px);
+}
+
+.editor-actions-bar:hover {
+    transform: translateX(-50%) translateY(-2px);
+    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.2);
+}
+
+/* Action Buttons */
+.action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px 6px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: #333;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    min-width: 60px; /* Accessibility: minimum touch target */
+    min-height: 60px;
+    text-align: center;
+}
+
+.action-btn:hover {
+    background: rgba(0, 0, 0, 0.08);
+    transform: translateY(-1px);
+}
+
+.action-btn:active {
+    transform: translateY(0);
+    background: rgba(0, 0, 0, 0.12);
+}
+
+.action-btn:focus {
+    outline: 2px solid #007bff;
+    outline-offset: 2px;
+}
+
+.action-btn svg {
+    flex-shrink: 0;
+}
+
+.action-btn span {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Button specific colors */
+.paste-btn:hover {
+    background: rgba(40, 167, 69, 0.1);
+    color: #28a745;
+}
+
+.copy-btn:hover {
+    background: rgba(0, 123, 255, 0.1);
+    color: #007bff;
+}
+
+.clear-btn:hover {
+    background: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
+}
+
+/* Dark theme support */
+@media (prefers-color-scheme: dark) {
+    .editor-actions-bar {
+        background: rgba(33, 37, 41, 0.95);
+        border-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    .action-btn {
+        color: #f8f9fa;
+    }
+    
+    .action-btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+    }
+    
+    .action-btn:active {
+        background: rgba(255, 255, 255, 0.15);
+    }
+}
+
+/* Settings Badge (when no settings container exists) */
+.editor-actions-settings-badge {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 999;
+}
+
+.settings-toggle {
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.9);
+    color: #666;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+}
+
+.settings-toggle:hover {
+    background: rgba(255, 255, 255, 1);
+    transform: scale(1.05);
+}
+
+.settings-toggle:focus {
+    outline: 2px solid #007bff;
+    outline-offset: 2px;
+}
+
+.settings-panel {
+    position: absolute;
+    top: 50px;
+    right: 0;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    min-width: 200px;
+    transition: all 0.2s ease;
+}
+
+.settings-panel.hidden {
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+}
+
+.settings-panel label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #333;
+    cursor: pointer;
+}
+
+.settings-panel input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+}
+
+/* Toast Notifications */
+.editor-actions-toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 1001;
+    opacity: 0;
+    transform: translateX(100%);
+    transition: all 0.3s ease;
+    max-width: 300px;
+    word-wrap: break-word;
+}
+
+.editor-actions-toast.show {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.toast-success {
+    background: #28a745;
+}
+
+.toast-error {
+    background: #dc3545;
+}
+
+.toast-info {
+    background: #17a2b8;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .editor-actions-bar {
+        grid-template-columns: repeat(2, 1fr);
+        max-width: 160px;
+        min-width: 140px;
+    }
+}
+
+@media (max-width: 768px) {
+    .editor-actions-bar {
+        bottom: 10px;
+        padding: 6px;
+        gap: 6px;
+        grid-template-columns: repeat(3, 1fr);
+        max-width: 200px;
+        min-width: 180px;
+    }
+
+    .action-btn {
+        padding: 6px 4px;
+        font-size: 10px;
+        min-width: 50px;
+        min-height: 50px;
+        gap: 2px;
+    }
+
+    .action-btn svg {
+        width: 16px;
+        height: 16px;
+    }
+
+    .editor-actions-toast {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        max-width: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .editor-actions-bar {
+        bottom: 8px;
+        padding: 4px;
+        gap: 4px;
+        grid-template-columns: repeat(3, 1fr);
+        max-width: 180px;
+        min-width: 160px;
+    }
+
+    .action-btn {
+        padding: 4px 2px;
+        font-size: 9px;
+        min-width: 45px;
+        min-height: 45px;
+    }
+
+    .action-btn svg {
+        width: 14px;
+        height: 14px;
+    }
+}
+
+@media (max-width: 480px) {
+    .editor-actions-bar {
+        bottom: 10px;
+        padding: 4px 6px;
+    }
+    
+    .action-btn {
+        padding: 4px 6px;
+        min-width: 36px;
+        min-height: 36px;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .editor-actions-bar {
+        border: 2px solid #000;
+        background: #fff;
+    }
+    
+    .action-btn {
+        border: 1px solid #000;
+    }
+    
+    .action-btn:focus {
+        outline: 3px solid #000;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .editor-actions-bar,
+    .action-btn,
+    .editor-actions-toast,
+    .settings-panel {
+        transition: none;
+    }
+    
+    .editor-actions-bar:hover {
+        transform: translateX(-50%);
+    }
+    
+    .action-btn:hover {
+        transform: none;
+    }
+}
+
+/* Print styles */
+@media print {
+    .editor-actions-bar,
+    .editor-actions-settings-badge,
+    .editor-actions-toast {
+        display: none !important;
+    }
+}
+
+/* Focus management for accessibility */
+.editor-actions-bar:focus-within {
+    outline: 2px solid #007bff;
+    outline-offset: 2px;
+}
+
+/* Ensure proper stacking context */
+.editor-actions-bar,
+.editor-actions-settings-badge,
+.editor-actions-toast {
+    isolation: isolate;
+}

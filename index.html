@@ -70,6 +70,9 @@
 
     <!-- Custom Styles -->
     <link rel="stylesheet" href="src/style/index.css" />
+
+    <!-- Editor Actions Module -->
+    <link rel="stylesheet" href="src/style/editor-actions.css" />
   </head>
   <body>
     <!-- Main Container -->
@@ -148,9 +151,27 @@
           </div>
 
           <div class="setting-group">
+            <label>
+              <input type="checkbox" name="actionBarVisible" checked />
+              Показывать панель действий
+            </label>
+          </div>
+
+          <div class="setting-group">
+            <label for="highlight-color">Цвет подсветки поиска:</label>
+            <input type="color" name="highlightColor" value="#ffeb3b" />
+          </div>
+
+          <div class="setting-group">
             <label for="preview-zoom">Масштаб превью:</label>
             <input type="range" id="preview-zoom" min="50" max="200" value="100" step="25" />
             <span id="zoom-value">100%</span>
+          </div>
+
+          <div class="setting-group">
+            <button id="reset-settings" class="btn btn-danger" title="Сбросить все настройки к значениям по умолчанию">
+              🔄 Сбросить настройки
+            </button>
           </div>
         </div>
       </div>
@@ -308,6 +329,7 @@
     </div>
 
     <!-- Scripts -->
-    <script type="module" src="src/script/index.js"></script>
+    <script defer src="src/utils/editor-actions.js"></script>
+    <script defer type="module" src="src/script/index.js"></script>
   </body>
 </html>

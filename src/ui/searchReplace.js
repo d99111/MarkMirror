@@ -741,6 +741,9 @@ export class SearchReplace {
 
         // Add CSS class to indicate search is active
         this.editor.view.dom.classList.add('search-active');
+
+        // Apply custom highlight color if EditorActions is available
+        this.applyHighlightColor();
     }
 
     highlightCurrentMatchCodeMirror() {
@@ -1190,10 +1193,63 @@ export class SearchReplace {
         }, 100);
     }
 
+    // Apply highlight color from EditorActions settings
+    applyHighlightColor() {
+        if (typeof window.EditorActions !== 'undefined') {
+            const highlightColor = window.EditorActions.getHighlightColor();
+            if (highlightColor) {
+                // Create or update CSS custom property for highlight color
+                const style = document.getElementById('search-highlight-style') || document.createElement('style');
+                style.id = 'search-highlight-style';
+                style.textContent = `
+                    .cm-editor.search-active .cm-selectionBackground {
+                        background-color: ${highlightColor}80 !important; /* 50% opacity */
+                    }
+                    .cm-editor.search-active .cm-focused .cm-selectionBackground {
+                        background-color: ${highlightColor}CC !important; /* 80% opacity */
+                    }
+                    .simple-editor.search-active::selection {
+                        background-color: ${highlightColor}80 !important;
+                    }
+                `;
+                if (!style.parentNode) {
+                    document.head.appendChild(style);
+                }
+            }
+        }
+    }
+
+    // Expose methods for EditorActions integration
+    openFind() {
+        this.showPanel();
+    }
+
+    openReplace() {
+        this.showPanel(true);
+    }
+
+    findNext() {
+        if (this.matches.length > 0) {
+            this.findNext();
+        }
+    }
+
+    findPrev() {
+        if (this.matches.length > 0) {
+            this.findPrevious();
+        }
+    }
+
     // Destroy the search and replace instance
     destroy() {
         this.clearHighlights();
         this.hidePanel();
+
+        // Remove custom highlight styles
+        const style = document.getElementById('search-highlight-style');
+        if (style) {
+            style.remove();
+        }
 
         // Remove event listeners
         // Note: In a real implementation, you'd want to store references to bound functions
