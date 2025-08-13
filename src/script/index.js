@@ -10,384 +10,384 @@ import { AnalyticsPanel } from '../ui/analyticsPanel.js';
 import { PWAManager } from '../utils/pwa.js';
 
 class MarkMirrorApp {
-    constructor() {
-        this.editor = null;
-        this.preview = null;
-        this.storage = new Storage();
-        this.fileHandler = new FileHandler();
-        this.analytics = new Analytics();
-        this.analyticsPanel = new AnalyticsPanel(this.analytics);
-        this.pwaManager = new PWAManager();
-        this.settings = this.storage.loadSettings();
-        this.autoSaveTimer = null;
-        this.currentTheme = this.settings.theme;
-        this.lastContent = '';
+  constructor() {
+    this.editor = null;
+    this.preview = null;
+    this.storage = new Storage();
+    this.fileHandler = new FileHandler();
+    this.analytics = new Analytics();
+    this.analyticsPanel = new AnalyticsPanel(this.analytics);
+    this.pwaManager = new PWAManager();
+    this.settings = this.storage.loadSettings();
+    this.autoSaveTimer = null;
+    this.currentTheme = this.settings.theme;
+    this.lastContent = '';
 
-        this.init();
+    this.init();
+  }
+
+  // Initialize the application
+  async init() {
+    try {
+      this.showLoading(true);
+
+      // Wait for DOM to be ready
+      if (document.readyState === 'loading') {
+        await new Promise(resolve => {
+          document.addEventListener('DOMContentLoaded', resolve);
+        });
+      }
+
+      // Initialize components
+      this.initializeTheme();
+      await this.initializeEditor();
+      this.initializePreview();
+      this.initializeUI();
+      this.loadSavedContent();
+      this.setupAutoSave();
+
+      // Force scroll setup after everything is loaded
+      setTimeout(() => {
+        this.forceScrollSetup();
+      }, 1000);
+
+      this.showLoading(false);
+
+      console.log('MarkMirror Mobile initialized successfully');
+    } catch (error) {
+      console.error('Failed to initialize MarkMirror:', error);
+      this.showError('Failed to initialize application');
+    }
+  }
+
+  // Initialize theme system
+  initializeTheme() {
+    // Detect system theme preference
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+    // Set initial theme
+    if (this.settings.theme === 'auto') {
+      this.currentTheme = prefersDark ? 'dark' : 'light';
+    } else {
+      this.currentTheme = this.settings.theme;
     }
 
-    // Initialize the application
-    async init() {
-        try {
-            this.showLoading(true);
+    this.applyTheme(this.currentTheme);
 
-            // Wait for DOM to be ready
-            if (document.readyState === 'loading') {
-                await new Promise(resolve => {
-                    document.addEventListener('DOMContentLoaded', resolve);
-                });
-            }
-
-            // Initialize components
-            this.initializeTheme();
-            await this.initializeEditor();
-            this.initializePreview();
-            this.initializeUI();
-            this.loadSavedContent();
-            this.setupAutoSave();
-
-            // Force scroll setup after everything is loaded
-            setTimeout(() => {
-                this.forceScrollSetup();
-            }, 1000);
-
-            this.showLoading(false);
-
-            console.log('MarkMirror Mobile initialized successfully');
-        } catch (error) {
-            console.error('Failed to initialize MarkMirror:', error);
-            this.showError('Failed to initialize application');
-        }
-    }
-
-    // Initialize theme system
-    initializeTheme() {
-        // Detect system theme preference
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-        // Set initial theme
-        if (this.settings.theme === 'auto') {
-            this.currentTheme = prefersDark ? 'dark' : 'light';
-        } else {
-            this.currentTheme = this.settings.theme;
-        }
-
+    // Listen for system theme changes
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+      if (this.settings.theme === 'auto') {
+        this.currentTheme = e.matches ? 'dark' : 'light';
         this.applyTheme(this.currentTheme);
+      }
+    });
+  }
 
-        // Listen for system theme changes
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-            if (this.settings.theme === 'auto') {
-                this.currentTheme = e.matches ? 'dark' : 'light';
-                this.applyTheme(this.currentTheme);
-            }
-        });
+  // Apply theme to the application
+  applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+
+    // Update theme toggle button
+    const themeToggle = document.getElementById('theme-toggle');
+    if (themeToggle) {
+      themeToggle.textContent = theme === 'dark' ? '☀️' : '🌙';
+      themeToggle.title = theme === 'dark' ? 'Переключить на светлую тему' : 'Переключить на тёмную тему';
+    }
+  }
+
+  // Initialize the editor
+  async initializeEditor() {
+    const container = document.getElementById('editor-container');
+    if (!container) {
+      throw new Error('Editor container not found');
     }
 
-    // Apply theme to the application
-    applyTheme(theme) {
-        document.documentElement.setAttribute('data-theme', theme);
+    // Try to use CodeMirror first, fallback to simple editor
+    try {
+      // Dynamically import CodeMirror editor
+      const { MarkdownEditor } = await import('../ui/editor.js');
+      this.editor = new MarkdownEditor(container, {
+        theme: this.currentTheme,
+        autoComplete: this.settings.autoComplete,
+        onChange: content => this.handleContentChange(content),
+        onScroll: scrollInfo => this.handleEditorScroll(scrollInfo),
+      });
+      console.log('CodeMirror editor initialized');
+    } catch (error) {
+      console.warn('CodeMirror failed to load, using simple editor:', error);
+      // Use simple editor as fallback
+      this.editor = new SimpleEditor(container, {
+        theme: this.currentTheme,
+        autoComplete: this.settings.autoComplete,
+        onChange: content => this.handleContentChange(content),
+        onScroll: scrollInfo => this.handleEditorScroll(scrollInfo),
+      });
+      console.log('Simple editor initialized');
+    }
+  }
 
-        // Update theme toggle button
-        const themeToggle = document.getElementById('theme-toggle');
-        if (themeToggle) {
-            themeToggle.textContent = theme === 'dark' ? '☀️' : '🌙';
-            themeToggle.title = theme === 'dark' ? 'Переключить на светлую тему' : 'Переключить на тёмную тему';
-        }
+  // Initialize the preview panel
+  initializePreview() {
+    const plainTextContainer = document.getElementById('plain-text-output');
+    const htmlContainer = document.getElementById('html-output');
+
+    if (!plainTextContainer || !htmlContainer) {
+      throw new Error('Preview containers not found');
     }
 
-    // Initialize the editor
-    async initializeEditor() {
-        const container = document.getElementById('editor-container');
-        if (!container) {
-            throw new Error('Editor container not found');
-        }
+    this.preview = new PreviewPanel({
+      plainTextContainer,
+      htmlContainer,
+      syncScroll: this.settings.syncScroll,
+      zoom: this.settings.previewZoom,
+      useExternalParser: this.settings.useExternalParser,
+      showMarkdownHighlight: this.settings.markdownHighlight,
+    });
+  }
 
-        // Try to use CodeMirror first, fallback to simple editor
-        try {
-            // Dynamically import CodeMirror editor
-            const { MarkdownEditor } = await import('../ui/editor.js');
-            this.editor = new MarkdownEditor(container, {
-                theme: this.currentTheme,
-                autoComplete: this.settings.autoComplete,
-                onChange: (content) => this.handleContentChange(content),
-                onScroll: (scrollInfo) => this.handleEditorScroll(scrollInfo)
-            });
-            console.log('CodeMirror editor initialized');
-        } catch (error) {
-            console.warn('CodeMirror failed to load, using simple editor:', error);
-            // Use simple editor as fallback
-            this.editor = new SimpleEditor(container, {
-                theme: this.currentTheme,
-                autoComplete: this.settings.autoComplete,
-                onChange: (content) => this.handleContentChange(content),
-                onScroll: (scrollInfo) => this.handleEditorScroll(scrollInfo)
-            });
-            console.log('Simple editor initialized');
-        }
+  // Initialize UI event handlers
+  initializeUI() {
+    this.setupFileControls();
+    this.setupSettingsPanel();
+    this.setupAnalyticsPanel();
+    this.setupMobileTabs();
+    this.setupHelpModal();
+    this.setupKeyboardShortcuts();
+  }
+
+  // Setup file control handlers
+  setupFileControls() {
+    // Import button
+    const importBtn = document.getElementById('import-btn');
+    const importFile = document.getElementById('import-file');
+
+    if (importBtn && importFile) {
+      importBtn.addEventListener('click', () => importFile.click());
+      importFile.addEventListener('change', e => this.handleFileImport(e));
     }
 
-    // Initialize the preview panel
-    initializePreview() {
-        const plainTextContainer = document.getElementById('plain-text-output');
-        const htmlContainer = document.getElementById('html-output');
+    // Export buttons
+    const exportMdBtn = document.getElementById('export-md-btn');
+    const exportHtmlBtn = document.getElementById('export-html-btn');
 
-        if (!plainTextContainer || !htmlContainer) {
-            throw new Error('Preview containers not found');
-        }
-
-        this.preview = new PreviewPanel({
-            plainTextContainer,
-            htmlContainer,
-            syncScroll: this.settings.syncScroll,
-            zoom: this.settings.previewZoom,
-            useExternalParser: this.settings.useExternalParser,
-            showMarkdownHighlight: this.settings.markdownHighlight
-        });
+    if (exportMdBtn) {
+      exportMdBtn.addEventListener('click', () => this.exportMarkdown());
     }
 
-    // Initialize UI event handlers
-    initializeUI() {
-        this.setupFileControls();
-        this.setupSettingsPanel();
-        this.setupAnalyticsPanel();
-        this.setupMobileTabs();
-        this.setupHelpModal();
-        this.setupKeyboardShortcuts();
+    if (exportHtmlBtn) {
+      exportHtmlBtn.addEventListener('click', () => this.exportHTML());
     }
 
-    // Setup file control handlers
-    setupFileControls() {
-        // Import button
-        const importBtn = document.getElementById('import-btn');
-        const importFile = document.getElementById('import-file');
+    // Clear button
+    const clearBtn = document.getElementById('clear-btn');
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => this.clearEditor());
+    }
+  }
 
-        if (importBtn && importFile) {
-            importBtn.addEventListener('click', () => importFile.click());
-            importFile.addEventListener('change', (e) => this.handleFileImport(e));
+  // Setup settings panel
+  setupSettingsPanel() {
+    const settingsToggle = document.getElementById('settings-toggle');
+    const settingsPanel = document.getElementById('settings-panel');
+
+    if (settingsToggle && settingsPanel) {
+      settingsToggle.addEventListener('click', () => {
+        settingsPanel.classList.toggle('hidden');
+      });
+
+      // Close settings when clicking outside
+      document.addEventListener('click', e => {
+        if (!settingsPanel.contains(e.target) && !settingsToggle.contains(e.target)) {
+          settingsPanel.classList.add('hidden');
         }
-
-        // Export buttons
-        const exportMdBtn = document.getElementById('export-md-btn');
-        const exportHtmlBtn = document.getElementById('export-html-btn');
-
-        if (exportMdBtn) {
-            exportMdBtn.addEventListener('click', () => this.exportMarkdown());
-        }
-
-        if (exportHtmlBtn) {
-            exportHtmlBtn.addEventListener('click', () => this.exportHTML());
-        }
-
-        // Clear button
-        const clearBtn = document.getElementById('clear-btn');
-        if (clearBtn) {
-            clearBtn.addEventListener('click', () => this.clearEditor());
-        }
+      });
     }
 
-    // Setup settings panel
-    setupSettingsPanel() {
-        const settingsToggle = document.getElementById('settings-toggle');
-        const settingsPanel = document.getElementById('settings-panel');
-
-        if (settingsToggle && settingsPanel) {
-            settingsToggle.addEventListener('click', () => {
-                settingsPanel.classList.toggle('hidden');
-            });
-
-            // Close settings when clicking outside
-            document.addEventListener('click', (e) => {
-                if (!settingsPanel.contains(e.target) && !settingsToggle.contains(e.target)) {
-                    settingsPanel.classList.add('hidden');
-                }
-            });
-        }
-
-        // Theme toggle
-        const themeToggle = document.getElementById('theme-toggle');
-        if (themeToggle) {
-            themeToggle.addEventListener('click', () => this.toggleTheme());
-        }
-
-        // Settings controls
-        this.setupSettingsControls();
+    // Theme toggle
+    const themeToggle = document.getElementById('theme-toggle');
+    if (themeToggle) {
+      themeToggle.addEventListener('click', () => this.toggleTheme());
     }
 
-    // Setup settings controls
-    setupSettingsControls() {
-        // Auto-complete toggle
-        const autoCompleteToggle = document.getElementById('auto-complete-toggle');
-        if (autoCompleteToggle) {
-            autoCompleteToggle.checked = this.settings.autoComplete;
-            autoCompleteToggle.addEventListener('change', (e) => {
-                const oldValue = this.settings.autoComplete;
-                this.settings.autoComplete = e.target.checked;
-                this.saveSettings();
-                if (this.editor) {
-                    this.editor.toggleAutoComplete(e.target.checked);
-                }
+    // Settings controls
+    this.setupSettingsControls();
+  }
 
-                // Track setting change
-                if (this.analytics) {
-                    this.analytics.trackSettingChange('autoComplete', oldValue, e.target.checked);
-                }
-            });
-        }
-
-        // Sync scroll toggle
-        const syncScrollToggle = document.getElementById('sync-scroll-toggle');
-        if (syncScrollToggle) {
-            syncScrollToggle.checked = this.settings.syncScroll;
-            syncScrollToggle.addEventListener('change', (e) => {
-                this.settings.syncScroll = e.target.checked;
-                this.saveSettings();
-                if (this.preview) {
-                    this.preview.setScrollSync(e.target.checked);
-                }
-            });
-        }
-
-        // External parser toggle
-        const externalParserToggle = document.getElementById('use-external-parser-toggle');
-        if (externalParserToggle) {
-            externalParserToggle.checked = this.settings.useExternalParser;
-            externalParserToggle.addEventListener('change', (e) => {
-                this.settings.useExternalParser = e.target.checked;
-                this.saveSettings();
-                if (this.preview) {
-                    this.preview.toggleParser(e.target.checked);
-                }
-            });
-        }
-
-        // Embed styles toggle
-        const embedStylesToggle = document.getElementById('embed-styles-toggle');
-        if (embedStylesToggle) {
-            embedStylesToggle.checked = this.settings.embedStyles;
-            embedStylesToggle.addEventListener('change', (e) => {
-                this.settings.embedStyles = e.target.checked;
-                this.saveSettings();
-            });
-        }
-
-        // Preview zoom
-        const previewZoom = document.getElementById('preview-zoom');
-        const zoomValue = document.getElementById('zoom-value');
-        if (previewZoom && zoomValue) {
-            previewZoom.value = this.settings.previewZoom;
-            zoomValue.textContent = `${this.settings.previewZoom}%`;
-
-            previewZoom.addEventListener('input', (e) => {
-                const zoom = parseInt(e.target.value);
-                this.settings.previewZoom = zoom;
-                zoomValue.textContent = `${zoom}%`;
-                this.saveSettings();
-                if (this.preview) {
-                    this.preview.updateZoom(zoom);
-                }
-            });
-        }
-
-        // Markdown highlight toggle
-        const markdownHighlightToggle = document.getElementById('markdown-highlight-toggle');
-        if (markdownHighlightToggle) {
-            markdownHighlightToggle.checked = this.settings.markdownHighlight;
-            markdownHighlightToggle.addEventListener('change', (e) => {
-                const oldValue = this.settings.markdownHighlight;
-                this.settings.markdownHighlight = e.target.checked;
-                this.saveSettings();
-                if (this.preview) {
-                    this.preview.toggleMarkdownHighlight(e.target.checked);
-                }
-
-                // Track setting change
-                if (this.analytics) {
-                    this.analytics.trackSettingChange('markdownHighlight', oldValue, e.target.checked);
-                }
-            });
-        }
-    }
-
-    // Setup analytics panel
-    setupAnalyticsPanel() {
-        const analyticsToggle = document.getElementById('analytics-toggle');
-
-        if (analyticsToggle) {
-            analyticsToggle.addEventListener('click', () => {
-                this.analyticsPanel.show();
-                if (this.analytics) {
-                    this.analytics.trackFunctionUsage('analytics_open');
-                }
-            });
-        }
-    }
-
-    // Handle content changes
-    handleContentChange(content) {
-        // Track content changes for analytics
-        if (this.analytics && this.lastContent !== content) {
-            this.analytics.trackContentChange(this.lastContent, content);
-            this.lastContent = content;
-        }
-
-        // Update character count
-        const charCount = document.getElementById('char-count');
-        if (charCount) {
-            const count = content.length;
-            charCount.textContent = `${count} символов`;
-        }
-
-        // Update preview
-        if (this.preview) {
-            this.preview.updatePreview(content);
-        }
-
-        // Trigger auto-save
-        this.scheduleAutoSave();
-    }
-
-    // Handle editor scroll
-    handleEditorScroll(scrollInfo) {
-        // Sync scroll with preview if enabled
-        if (this.preview && this.settings.syncScroll && scrollInfo) {
-            this.preview.scrollToPosition(scrollInfo.percentage);
-        }
-    }
-
-    // Schedule auto-save
-    scheduleAutoSave() {
-        if (this.autoSaveTimer) {
-            clearTimeout(this.autoSaveTimer);
-        }
-
-        this.autoSaveTimer = setTimeout(() => {
-            this.saveContent();
-        }, 1000); // Auto-save after 1 second of inactivity
-    }
-
-    // Save content to localStorage
-    saveContent() {
+  // Setup settings controls
+  setupSettingsControls() {
+    // Auto-complete toggle
+    const autoCompleteToggle = document.getElementById('auto-complete-toggle');
+    if (autoCompleteToggle) {
+      autoCompleteToggle.checked = this.settings.autoComplete;
+      autoCompleteToggle.addEventListener('change', e => {
+        const oldValue = this.settings.autoComplete;
+        this.settings.autoComplete = e.target.checked;
+        this.saveSettings();
         if (this.editor) {
-            const content = this.editor.getContent();
-            this.storage.saveContent(content);
+          this.editor.toggleAutoComplete(e.target.checked);
         }
+
+        // Track setting change
+        if (this.analytics) {
+          this.analytics.trackSettingChange('autoComplete', oldValue, e.target.checked);
+        }
+      });
     }
 
-    // Load saved content
-    loadSavedContent() {
-        const savedContent = this.storage.loadContent();
-        if (savedContent && this.editor) {
-            this.editor.setContent(savedContent);
-        } else if (this.editor) {
-            // Load default content for demonstration
-            const defaultContent = this.getDefaultContent();
-            this.editor.setContent(defaultContent);
+    // Sync scroll toggle
+    const syncScrollToggle = document.getElementById('sync-scroll-toggle');
+    if (syncScrollToggle) {
+      syncScrollToggle.checked = this.settings.syncScroll;
+      syncScrollToggle.addEventListener('change', e => {
+        this.settings.syncScroll = e.target.checked;
+        this.saveSettings();
+        if (this.preview) {
+          this.preview.setScrollSync(e.target.checked);
         }
+      });
     }
 
-    // Get default content for demonstration
-    getDefaultContent() {
-        return `# Добро пожаловать в MarkMirror Mobile! 🚀
+    // External parser toggle
+    const externalParserToggle = document.getElementById('use-external-parser-toggle');
+    if (externalParserToggle) {
+      externalParserToggle.checked = this.settings.useExternalParser;
+      externalParserToggle.addEventListener('change', e => {
+        this.settings.useExternalParser = e.target.checked;
+        this.saveSettings();
+        if (this.preview) {
+          this.preview.toggleParser(e.target.checked);
+        }
+      });
+    }
+
+    // Embed styles toggle
+    const embedStylesToggle = document.getElementById('embed-styles-toggle');
+    if (embedStylesToggle) {
+      embedStylesToggle.checked = this.settings.embedStyles;
+      embedStylesToggle.addEventListener('change', e => {
+        this.settings.embedStyles = e.target.checked;
+        this.saveSettings();
+      });
+    }
+
+    // Preview zoom
+    const previewZoom = document.getElementById('preview-zoom');
+    const zoomValue = document.getElementById('zoom-value');
+    if (previewZoom && zoomValue) {
+      previewZoom.value = this.settings.previewZoom;
+      zoomValue.textContent = `${this.settings.previewZoom}%`;
+
+      previewZoom.addEventListener('input', e => {
+        const zoom = parseInt(e.target.value);
+        this.settings.previewZoom = zoom;
+        zoomValue.textContent = `${zoom}%`;
+        this.saveSettings();
+        if (this.preview) {
+          this.preview.updateZoom(zoom);
+        }
+      });
+    }
+
+    // Markdown highlight toggle
+    const markdownHighlightToggle = document.getElementById('markdown-highlight-toggle');
+    if (markdownHighlightToggle) {
+      markdownHighlightToggle.checked = this.settings.markdownHighlight;
+      markdownHighlightToggle.addEventListener('change', e => {
+        const oldValue = this.settings.markdownHighlight;
+        this.settings.markdownHighlight = e.target.checked;
+        this.saveSettings();
+        if (this.preview) {
+          this.preview.toggleMarkdownHighlight(e.target.checked);
+        }
+
+        // Track setting change
+        if (this.analytics) {
+          this.analytics.trackSettingChange('markdownHighlight', oldValue, e.target.checked);
+        }
+      });
+    }
+  }
+
+  // Setup analytics panel
+  setupAnalyticsPanel() {
+    const analyticsToggle = document.getElementById('analytics-toggle');
+
+    if (analyticsToggle) {
+      analyticsToggle.addEventListener('click', () => {
+        this.analyticsPanel.show();
+        if (this.analytics) {
+          this.analytics.trackFunctionUsage('analytics_open');
+        }
+      });
+    }
+  }
+
+  // Handle content changes
+  handleContentChange(content) {
+    // Track content changes for analytics
+    if (this.analytics && this.lastContent !== content) {
+      this.analytics.trackContentChange(this.lastContent, content);
+      this.lastContent = content;
+    }
+
+    // Update character count
+    const charCount = document.getElementById('char-count');
+    if (charCount) {
+      const count = content.length;
+      charCount.textContent = `${count} символов`;
+    }
+
+    // Update preview
+    if (this.preview) {
+      this.preview.updatePreview(content);
+    }
+
+    // Trigger auto-save
+    this.scheduleAutoSave();
+  }
+
+  // Handle editor scroll
+  handleEditorScroll(scrollInfo) {
+    // Sync scroll with preview if enabled
+    if (this.preview && this.settings.syncScroll && scrollInfo) {
+      this.preview.scrollToPosition(scrollInfo.percentage);
+    }
+  }
+
+  // Schedule auto-save
+  scheduleAutoSave() {
+    if (this.autoSaveTimer) {
+      clearTimeout(this.autoSaveTimer);
+    }
+
+    this.autoSaveTimer = setTimeout(() => {
+      this.saveContent();
+    }, 1000); // Auto-save after 1 second of inactivity
+  }
+
+  // Save content to localStorage
+  saveContent() {
+    if (this.editor) {
+      const content = this.editor.getContent();
+      this.storage.saveContent(content);
+    }
+  }
+
+  // Load saved content
+  loadSavedContent() {
+    const savedContent = this.storage.loadContent();
+    if (savedContent && this.editor) {
+      this.editor.setContent(savedContent);
+    } else if (this.editor) {
+      // Load default content for demonstration
+      const defaultContent = this.getDefaultContent();
+      this.editor.setContent(defaultContent);
+    }
+  }
+
+  // Get default content for demonstration
+  getDefaultContent() {
+    return `# Добро пожаловать в MarkMirror Mobile! 🚀
 
 Это **мощный Markdown редактор** с двухпанельным интерфейсом.
 
@@ -628,172 +628,171 @@ Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed 
 ---
 
 *Конец документа. Если вы дошли до этого места, скролл точно работает!* 🎉`;
+  }
+
+  // Save settings
+  saveSettings() {
+    this.storage.saveSettings(this.settings);
+  }
+
+  // Setup auto-save
+  setupAutoSave() {
+    // Save content when page is about to unload
+    window.addEventListener('beforeunload', () => {
+      this.saveContent();
+    });
+
+    // Save content periodically
+    setInterval(() => {
+      this.saveContent();
+    }, 30000); // Every 30 seconds
+  }
+
+  // Toggle theme
+  toggleTheme() {
+    const oldTheme = this.settings.theme;
+
+    if (this.settings.theme === 'auto') {
+      this.settings.theme = this.currentTheme === 'dark' ? 'light' : 'dark';
+    } else {
+      this.settings.theme = this.settings.theme === 'dark' ? 'light' : 'dark';
     }
 
-    // Save settings
-    saveSettings() {
-        this.storage.saveSettings(this.settings);
+    this.currentTheme = this.settings.theme;
+    this.applyTheme(this.currentTheme);
+    this.saveSettings();
+
+    // Track theme change
+    if (this.analytics) {
+      this.analytics.trackThemeChange(oldTheme, this.settings.theme);
     }
 
-    // Setup auto-save
-    setupAutoSave() {
-        // Save content when page is about to unload
-        window.addEventListener('beforeunload', () => {
-            this.saveContent();
-        });
-
-        // Save content periodically
-        setInterval(() => {
-            this.saveContent();
-        }, 30000); // Every 30 seconds
+    // Update editor theme
+    if (this.editor) {
+      this.editor.updateTheme(this.currentTheme);
     }
+  }
 
-    // Toggle theme
-    toggleTheme() {
-        const oldTheme = this.settings.theme;
+  // Handle file import
+  async handleFileImport(event) {
+    try {
+      const file = event.target.files[0];
+      if (!file) return;
 
-        if (this.settings.theme === 'auto') {
-            this.settings.theme = this.currentTheme === 'dark' ? 'light' : 'dark';
-        } else {
-            this.settings.theme = this.settings.theme === 'dark' ? 'light' : 'dark';
-        }
+      this.showLoading(true);
 
-        this.currentTheme = this.settings.theme;
-        this.applyTheme(this.currentTheme);
-        this.saveSettings();
+      const content = await this.fileHandler.readFileAsText(file);
 
-        // Track theme change
-        if (this.analytics) {
-            this.analytics.trackThemeChange(oldTheme, this.settings.theme);
-        }
+      if (this.editor) {
+        this.editor.setContent(content);
+      }
 
-        // Update editor theme
-        if (this.editor) {
-            this.editor.updateTheme(this.currentTheme);
-        }
+      // Clear the file input
+      event.target.value = '';
+
+      this.showLoading(false);
+      this.showMessage(`Файл "${file.name}" успешно импортирован`);
+
+      // Track import
+      if (this.analytics) {
+        this.analytics.trackImport(true, file.size, file.name);
+      }
+    } catch (error) {
+      console.error('Import failed:', error);
+      this.showError('Ошибка при импорте файла');
+      this.showLoading(false);
+
+      // Track failed import
+      if (this.analytics) {
+        this.analytics.trackImport(false);
+      }
     }
+  }
 
-    // Handle file import
-    async handleFileImport(event) {
-        try {
-            const file = event.target.files[0];
-            if (!file) return;
+  // Export as Markdown
+  exportMarkdown() {
+    if (!this.editor) return;
 
-            this.showLoading(true);
+    const content = this.editor.getContent();
+    const filename = `markmirror-${new Date().toISOString().split('T')[0]}.md`;
 
-            const content = await this.fileHandler.readFileAsText(file);
+    try {
+      this.fileHandler.exportMarkdown(content, filename);
+      this.showMessage('Markdown файл экспортирован');
 
-            if (this.editor) {
-                this.editor.setContent(content);
-            }
-
-            // Clear the file input
-            event.target.value = '';
-
-            this.showLoading(false);
-            this.showMessage(`Файл "${file.name}" успешно импортирован`);
-
-            // Track import
-            if (this.analytics) {
-                this.analytics.trackImport(true, file.size, file.name);
-            }
-
-        } catch (error) {
-            console.error('Import failed:', error);
-            this.showError('Ошибка при импорте файла');
-            this.showLoading(false);
-
-            // Track failed import
-            if (this.analytics) {
-                this.analytics.trackImport(false);
-            }
-        }
+      // Track export
+      if (this.analytics) {
+        this.analytics.trackExport('md', true, content.length);
+      }
+    } catch (error) {
+      this.showError('Ошибка при экспорте Markdown');
+      if (this.analytics) {
+        this.analytics.trackExport('md', false);
+      }
     }
+  }
 
-    // Export as Markdown
-    exportMarkdown() {
-        if (!this.editor) return;
+  // Export as HTML
+  exportHTML() {
+    if (!this.preview) return;
 
-        const content = this.editor.getContent();
-        const filename = `markmirror-${new Date().toISOString().split('T')[0]}.md`;
+    const htmlContent = this.preview.getHTMLContent();
+    const filename = `markmirror-${new Date().toISOString().split('T')[0]}.html`;
 
-        try {
-            this.fileHandler.exportMarkdown(content, filename);
-            this.showMessage('Markdown файл экспортирован');
+    try {
+      this.fileHandler.exportHTML(htmlContent, filename, this.settings.embedStyles);
+      this.showMessage('HTML файл экспортирован');
 
-            // Track export
-            if (this.analytics) {
-                this.analytics.trackExport('md', true, content.length);
-            }
-        } catch (error) {
-            this.showError('Ошибка при экспорте Markdown');
-            if (this.analytics) {
-                this.analytics.trackExport('md', false);
-            }
-        }
+      // Track export
+      if (this.analytics) {
+        this.analytics.trackExport('html', true, htmlContent.length);
+      }
+    } catch (error) {
+      this.showError('Ошибка при экспорте HTML');
+      if (this.analytics) {
+        this.analytics.trackExport('html', false);
+      }
     }
+  }
 
-    // Export as HTML
-    exportHTML() {
-        if (!this.preview) return;
-
-        const htmlContent = this.preview.getHTMLContent();
-        const filename = `markmirror-${new Date().toISOString().split('T')[0]}.html`;
-
-        try {
-            this.fileHandler.exportHTML(htmlContent, filename, this.settings.embedStyles);
-            this.showMessage('HTML файл экспортирован');
-
-            // Track export
-            if (this.analytics) {
-                this.analytics.trackExport('html', true, htmlContent.length);
-            }
-        } catch (error) {
-            this.showError('Ошибка при экспорте HTML');
-            if (this.analytics) {
-                this.analytics.trackExport('html', false);
-            }
-        }
+  // Clear editor
+  clearEditor() {
+    if (confirm('Вы уверены, что хотите очистить редактор? Все несохранённые изменения будут потеряны.')) {
+      if (this.editor) {
+        this.editor.setContent('');
+      }
+      if (this.preview) {
+        this.preview.clear();
+      }
+      this.storage.saveContent('');
+      this.showMessage('Редактор очищен');
     }
+  }
 
-    // Clear editor
-    clearEditor() {
-        if (confirm('Вы уверены, что хотите очистить редактор? Все несохранённые изменения будут потеряны.')) {
-            if (this.editor) {
-                this.editor.setContent('');
-            }
-            if (this.preview) {
-                this.preview.clear();
-            }
-            this.storage.saveContent('');
-            this.showMessage('Редактор очищен');
-        }
+  // Show loading indicator
+  showLoading(show) {
+    const loading = document.getElementById('loading');
+    if (loading) {
+      if (show) {
+        loading.classList.remove('hidden');
+      } else {
+        loading.classList.add('hidden');
+      }
     }
+  }
 
-    // Show loading indicator
-    showLoading(show) {
-        const loading = document.getElementById('loading');
-        if (loading) {
-            if (show) {
-                loading.classList.remove('hidden');
-            } else {
-                loading.classList.add('hidden');
-            }
-        }
-    }
+  // Show message
+  showMessage(message, type = 'info') {
+    // Simple message implementation
+    // In a real app, you might want a toast notification system
+    console.log(`${type.toUpperCase()}: ${message}`);
 
-    // Show message
-    showMessage(message, type = 'info') {
-        // Simple message implementation
-        // In a real app, you might want a toast notification system
-        console.log(`${type.toUpperCase()}: ${message}`);
-
-        // You could implement a toast notification here
-        // For now, we'll just use a temporary alert-style message
-        const messageEl = document.createElement('div');
-        messageEl.className = `message message-${type}`;
-        messageEl.textContent = message;
-        messageEl.style.cssText = `
+    // You could implement a toast notification here
+    // For now, we'll just use a temporary alert-style message
+    const messageEl = document.createElement('div');
+    messageEl.className = `message message-${type}`;
+    messageEl.textContent = message;
+    messageEl.style.cssText = `
             position: fixed;
             top: 20px;
             right: 20px;
@@ -806,106 +805,106 @@ Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed 
             max-width: 300px;
         `;
 
-        document.body.appendChild(messageEl);
+    document.body.appendChild(messageEl);
 
-        setTimeout(() => {
-            messageEl.remove();
-        }, 3000);
+    setTimeout(() => {
+      messageEl.remove();
+    }, 3000);
+  }
+
+  // Show error message
+  showError(message) {
+    this.showMessage(message, 'error');
+  }
+
+  // Force scroll setup for debugging
+  forceScrollSetup() {
+    console.log('🔧 Force scroll setup...');
+
+    if (this.preview) {
+      // Re-setup scroll sync
+      this.preview.setupScrollSync();
+
+      // Force container configuration
+      const plainTextContainer = document.getElementById('plain-text-output');
+      const htmlContainer = document.getElementById('html-output');
+
+      if (plainTextContainer && htmlContainer) {
+        this.preview.ensureScrollableContainers(plainTextContainer, htmlContainer);
+        console.log('✅ Scroll containers configured');
+      } else {
+        console.error('❌ Preview containers not found');
+      }
     }
 
-    // Show error message
-    showError(message) {
-        this.showMessage(message, 'error');
-    }
+    // Log current settings
+    console.log('Current settings:', {
+      syncScroll: this.settings.syncScroll,
+      previewZoom: this.settings.previewZoom,
+    });
+  }
 
-    // Force scroll setup for debugging
-    forceScrollSetup() {
-        console.log('🔧 Force scroll setup...');
+  // Setup mobile tabs
+  setupMobileTabs() {
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const editorPanel = document.querySelector('.editor-panel');
+    const previewPanel = document.querySelector('.preview-panel');
 
-        if (this.preview) {
-            // Re-setup scroll sync
-            this.preview.setupScrollSync();
+    tabBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tab = btn.dataset.tab;
 
-            // Force container configuration
-            const plainTextContainer = document.getElementById('plain-text-output');
-            const htmlContainer = document.getElementById('html-output');
+        // Update active tab
+        tabBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
 
-            if (plainTextContainer && htmlContainer) {
-                this.preview.ensureScrollableContainers(plainTextContainer, htmlContainer);
-                console.log('✅ Scroll containers configured');
-            } else {
-                console.error('❌ Preview containers not found');
-            }
+        // Show/hide panels
+        if (tab === 'editor') {
+          editorPanel?.classList.add('active');
+          previewPanel?.classList.remove('active');
+        } else if (tab === 'preview') {
+          editorPanel?.classList.remove('active');
+          previewPanel?.classList.add('active');
         }
+      });
+    });
+  }
 
-        // Log current settings
-        console.log('Current settings:', {
-            syncScroll: this.settings.syncScroll,
-            previewZoom: this.settings.previewZoom
-        });
+  // Setup help modal
+  setupHelpModal() {
+    const helpToggle = document.getElementById('help-toggle');
+    const helpModal = document.getElementById('help-modal');
+    const closeHelp = document.getElementById('close-help');
+    const helpContent = document.getElementById('help-content');
+
+    if (helpToggle && helpModal) {
+      helpToggle.addEventListener('click', () => {
+        helpModal.classList.remove('hidden');
+        this.loadHelpContent(helpContent);
+      });
     }
 
-    // Setup mobile tabs
-    setupMobileTabs() {
-        const tabBtns = document.querySelectorAll('.tab-btn');
-        const editorPanel = document.querySelector('.editor-panel');
-        const previewPanel = document.querySelector('.preview-panel');
-
-        tabBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                const tab = btn.dataset.tab;
-
-                // Update active tab
-                tabBtns.forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-
-                // Show/hide panels
-                if (tab === 'editor') {
-                    editorPanel?.classList.add('active');
-                    previewPanel?.classList.remove('active');
-                } else if (tab === 'preview') {
-                    editorPanel?.classList.remove('active');
-                    previewPanel?.classList.add('active');
-                }
-            });
-        });
+    if (closeHelp && helpModal) {
+      closeHelp.addEventListener('click', () => {
+        helpModal.classList.add('hidden');
+      });
     }
 
-    // Setup help modal
-    setupHelpModal() {
-        const helpToggle = document.getElementById('help-toggle');
-        const helpModal = document.getElementById('help-modal');
-        const closeHelp = document.getElementById('close-help');
-        const helpContent = document.getElementById('help-content');
-
-        if (helpToggle && helpModal) {
-            helpToggle.addEventListener('click', () => {
-                helpModal.classList.remove('hidden');
-                this.loadHelpContent(helpContent);
-            });
+    // Close modal when clicking outside
+    if (helpModal) {
+      helpModal.addEventListener('click', e => {
+        if (e.target === helpModal) {
+          helpModal.classList.add('hidden');
         }
-
-        if (closeHelp && helpModal) {
-            closeHelp.addEventListener('click', () => {
-                helpModal.classList.add('hidden');
-            });
-        }
-
-        // Close modal when clicking outside
-        if (helpModal) {
-            helpModal.addEventListener('click', (e) => {
-                if (e.target === helpModal) {
-                    helpModal.classList.add('hidden');
-                }
-            });
-        }
+      });
     }
+  }
 
-    // Load help content
-    loadHelpContent(container) {
-        if (!container) return;
+  // Load help content
+  loadHelpContent(container) {
+    if (!container) return;
 
-        const helpMarkdown = `# Справка по Markdown
+    const helpMarkdown = `# Справка по Markdown
 
 ## Заголовки
 \`\`\`
@@ -1026,84 +1025,83 @@ MarkMirror можно установить как обычное приложе�
 - Автосохранение в локальном хранилище
 - Синхронизация при восстановлении связи`;
 
-        // Parse and display help content
-        if (this.preview) {
-            const tempContainer = document.createElement('div');
-            tempContainer.className = 'markdown-body';
+    // Parse and display help content
+    if (this.preview) {
+      const tempContainer = document.createElement('div');
+      tempContainer.className = 'markdown-body';
 
-            // Use the same parser as preview
-            const html = this.preview.options.useExternalParser && typeof marked !== 'undefined'
-                ? marked.parse(helpMarkdown)
-                : this.preview.parser.parse(helpMarkdown);
+      // Use the same parser as preview
+      const html =
+        this.preview.options.useExternalParser && typeof marked !== 'undefined' ? marked.parse(helpMarkdown) : this.preview.parser.parse(helpMarkdown);
 
-            tempContainer.innerHTML = html;
-            container.innerHTML = '';
-            container.appendChild(tempContainer);
+      tempContainer.innerHTML = html;
+      container.innerHTML = '';
+      container.appendChild(tempContainer);
+    }
+  }
+
+  // Setup keyboard shortcuts
+  setupKeyboardShortcuts() {
+    document.addEventListener('keydown', e => {
+      // Ctrl/Cmd + S: Save (prevent default and trigger auto-save)
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        this.saveContent();
+        this.showMessage('Содержимое сохранено');
+      }
+
+      // Ctrl/Cmd + O: Import file
+      if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
+        e.preventDefault();
+        const importFile = document.getElementById('import-file');
+        if (importFile) {
+          importFile.click();
         }
-    }
+      }
 
-    // Setup keyboard shortcuts
-    setupKeyboardShortcuts() {
-        document.addEventListener('keydown', (e) => {
-            // Ctrl/Cmd + S: Save (prevent default and trigger auto-save)
-            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-                e.preventDefault();
-                this.saveContent();
-                this.showMessage('Содержимое сохранено');
-            }
+      // Ctrl/Cmd + E: Export Markdown
+      if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
+        e.preventDefault();
+        this.exportMarkdown();
+      }
 
-            // Ctrl/Cmd + O: Import file
-            if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
-                e.preventDefault();
-                const importFile = document.getElementById('import-file');
-                if (importFile) {
-                    importFile.click();
-                }
-            }
+      // Ctrl/Cmd + Shift + E: Export HTML
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'E') {
+        e.preventDefault();
+        this.exportHTML();
+      }
 
-            // Ctrl/Cmd + E: Export Markdown
-            if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
-                e.preventDefault();
-                this.exportMarkdown();
-            }
+      // F1: Help
+      if (e.key === 'F1') {
+        e.preventDefault();
+        const helpToggle = document.getElementById('help-toggle');
+        if (helpToggle) {
+          helpToggle.click();
+        }
+      }
 
-            // Ctrl/Cmd + Shift + E: Export HTML
-            if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'E') {
-                e.preventDefault();
-                this.exportHTML();
-            }
+      // F2: Analytics
+      if (e.key === 'F2') {
+        e.preventDefault();
+        this.analyticsPanel.show();
+        if (this.analytics) {
+          this.analytics.trackFunctionUsage('analytics_hotkey');
+        }
+      }
 
-            // F1: Help
-            if (e.key === 'F1') {
-                e.preventDefault();
-                const helpToggle = document.getElementById('help-toggle');
-                if (helpToggle) {
-                    helpToggle.click();
-                }
-            }
+      // Escape: Close modals/panels
+      if (e.key === 'Escape') {
+        const helpModal = document.getElementById('help-modal');
+        const settingsPanel = document.getElementById('settings-panel');
 
-            // F2: Analytics
-            if (e.key === 'F2') {
-                e.preventDefault();
-                this.analyticsPanel.show();
-                if (this.analytics) {
-                    this.analytics.trackFunctionUsage('analytics_hotkey');
-                }
-            }
-
-            // Escape: Close modals/panels
-            if (e.key === 'Escape') {
-                const helpModal = document.getElementById('help-modal');
-                const settingsPanel = document.getElementById('settings-panel');
-
-                if (helpModal && !helpModal.classList.contains('hidden')) {
-                    helpModal.classList.add('hidden');
-                } else if (settingsPanel && !settingsPanel.classList.contains('hidden')) {
-                    settingsPanel.classList.add('hidden');
-                }
-            }
-        });
-    }
+        if (helpModal && !helpModal.classList.contains('hidden')) {
+          helpModal.classList.add('hidden');
+        } else if (settingsPanel && !settingsPanel.classList.contains('hidden')) {
+          settingsPanel.classList.add('hidden');
+        }
+      }
+    });
+  }
 }
 
 // Initialize the application when the script loads
