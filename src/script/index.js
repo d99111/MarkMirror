@@ -8,11 +8,13 @@ import { SimpleEditor } from '../ui/simpleEditor.js';
 import { Analytics } from '../utils/analytics.js';
 import { AnalyticsPanel } from '../ui/analyticsPanel.js';
 import { PWAManager } from '../utils/pwa.js';
+import { SearchReplace } from '../ui/searchReplace.js';
 
 class MarkMirrorApp {
   constructor() {
     this.editor = null;
     this.preview = null;
+    this.searchReplace = null;
     this.storage = new Storage();
     this.fileHandler = new FileHandler();
     this.analytics = new Analytics();
@@ -43,6 +45,7 @@ class MarkMirrorApp {
       await this.initializeEditor();
       this.initializePreview();
       this.initializeUI();
+      this.initializeSearchReplace();
       this.loadSavedContent();
       this.setupAutoSave();
 
@@ -153,6 +156,16 @@ class MarkMirrorApp {
     this.setupMobileTabs();
     this.setupHelpModal();
     this.setupKeyboardShortcuts();
+  }
+
+  // Initialize search and replace functionality
+  initializeSearchReplace() {
+    if (this.editor) {
+      this.searchReplace = new SearchReplace(this.editor);
+      console.log('Search and Replace initialized');
+    } else {
+      console.warn('Cannot initialize Search and Replace: editor not available');
+    }
   }
 
   // Setup file control handlers
@@ -1110,3 +1123,21 @@ const app = new MarkMirrorApp();
 
 // Make app globally available for debugging
 window.app = app;
+
+// Global test function for search and replace
+window.testSearchReplace = function() {
+  if (app.searchReplace) {
+    app.searchReplace.test();
+  } else {
+    console.error('SearchReplace not initialized');
+  }
+};
+
+// Global debug function for search and replace
+window.debugSearchReplace = function() {
+  if (app.searchReplace) {
+    app.searchReplace.debug();
+  } else {
+    console.error('SearchReplace not initialized');
+  }
+};

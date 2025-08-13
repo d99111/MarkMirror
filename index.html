@@ -98,6 +98,9 @@
             <!-- Analytics toggle -->
             <button id="analytics-toggle" class="btn btn-icon" title="Аналитика">📊</button>
 
+            <!-- Search toggle -->
+            <button id="search-toggle" class="btn btn-icon" title="Поиск и замена (Ctrl+F)">🔍</button>
+
             <!-- Help toggle -->
             <button id="help-toggle" class="btn btn-icon" title="Справка">❓</button>
           </div>
@@ -148,6 +151,87 @@
             <label for="preview-zoom">Масштаб превью:</label>
             <input type="range" id="preview-zoom" min="50" max="200" value="100" step="25" />
             <span id="zoom-value">100%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Search and Replace Panel -->
+      <div id="search-panel" class="search-panel hidden">
+        <div class="search-content">
+          <div class="search-header">
+            <h3>Поиск и замена</h3>
+            <button id="search-close" class="btn btn-icon" title="Закрыть">✕</button>
+          </div>
+
+          <div class="search-form">
+            <!-- Search input -->
+            <div class="search-group">
+              <label for="search-input">Найти:</label>
+              <div class="search-input-container">
+                <input type="text" id="search-input" class="search-field" placeholder="Введите текст для поиска..." />
+                <div class="search-options">
+                  <button id="search-regex-toggle" class="btn btn-option" title="Регулярные выражения" data-active="false">.*</button>
+                  <button id="search-case-toggle" class="btn btn-option" title="Учитывать регистр" data-active="false">Aa</button>
+                  <button id="search-whole-word-toggle" class="btn btn-option" title="Целые слова" data-active="false">Ab</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Replace input -->
+            <div class="search-group">
+              <label for="replace-input">Заменить на:</label>
+              <input type="text" id="replace-input" class="search-field" placeholder="Введите текст для замены..." />
+            </div>
+
+            <!-- Search controls -->
+            <div class="search-controls">
+              <div class="search-navigation">
+                <button id="search-prev" class="btn btn-secondary" title="Предыдущее совпадение (Shift+F3)">↑</button>
+                <button id="search-next" class="btn btn-secondary" title="Следующее совпадение (F3)">↓</button>
+                <span id="search-results" class="search-results">0 из 0</span>
+              </div>
+
+              <div class="search-actions">
+                <button id="replace-current" class="btn btn-primary" title="Заменить текущее">Заменить</button>
+                <button id="replace-all" class="btn btn-primary" title="Заменить все">Заменить все</button>
+                <button id="replace-confirm-mode" class="btn btn-secondary" title="Режим подтверждения">Подтвердить</button>
+              </div>
+
+              <!-- Confirm mode controls (hidden by default) -->
+              <div id="confirm-mode-controls" class="confirm-mode-controls hidden">
+                <div class="confirm-actions">
+                  <button id="confirm-replace-yes" class="btn btn-success" title="Заменить это совпадение">Да</button>
+                  <button id="confirm-replace-no" class="btn btn-secondary" title="Пропустить это совпадение">Нет</button>
+                  <button id="confirm-replace-all-remaining" class="btn btn-warning" title="Заменить все оставшиеся">Все</button>
+                  <button id="confirm-replace-stop" class="btn btn-danger" title="Остановить замену">Стоп</button>
+                </div>
+                <div class="confirm-info">
+                  <span id="confirm-current-match" class="confirm-match-info"></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Search status -->
+            <div id="search-status" class="search-status hidden"></div>
+
+            <!-- Keyboard shortcuts help -->
+            <div class="search-shortcuts">
+              <details>
+                <summary>Клавиатурные сочетания</summary>
+                <div class="shortcuts-list">
+                  <div><kbd>Ctrl+F</kbd> - Открыть поиск</div>
+                  <div><kbd>Ctrl+H</kbd> - Открыть поиск и замену</div>
+                  <div><kbd>F3</kbd> / <kbd>Ctrl+G</kbd> - Следующее совпадение</div>
+                  <div><kbd>Shift+F3</kbd> / <kbd>Ctrl+Shift+G</kbd> - Предыдущее совпадение</div>
+                  <div><kbd>Ctrl+Enter</kbd> - Заменить и найти следующее</div>
+                  <div><kbd>Ctrl+Shift+Enter</kbd> - Заменить все</div>
+                  <div><kbd>Alt+R</kbd> - Переключить регулярные выражения</div>
+                  <div><kbd>Alt+C</kbd> - Переключить учет регистра</div>
+                  <div><kbd>Alt+W</kbd> - Переключить целые слова</div>
+                  <div><kbd>Escape</kbd> - Закрыть панель</div>
+                </div>
+              </details>
+            </div>
           </div>
         </div>
       </div>

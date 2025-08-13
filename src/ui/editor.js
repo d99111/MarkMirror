@@ -6,6 +6,8 @@ import { markdown } from '@codemirror/lang-markdown';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { autocompletion, completionKeymap } from '@codemirror/autocomplete';
 import { keymap } from '@codemirror/view';
+import { Decoration, DecorationSet } from '@codemirror/view';
+import { StateField, StateEffect } from '@codemirror/state';
 
 export class MarkdownEditor {
     constructor(container, options = {}) {
@@ -205,6 +207,56 @@ export class MarkdownEditor {
     // Get line count
     getLineCount() {
         return this.view ? this.view.state.doc.lines : 0;
+    }
+
+    // Get selected text
+    getSelection() {
+        if (!this.view) return '';
+
+        const selection = this.view.state.selection.main;
+        return this.view.state.doc.sliceString(selection.from, selection.to);
+    }
+
+    // Set selection
+    setSelection(from, to) {
+        if (!this.view) return;
+
+        this.view.dispatch({
+            selection: { anchor: from, head: to },
+            scrollIntoView: true
+        });
+    }
+
+    // Replace text in range
+    replaceRange(from, to, text) {
+        if (!this.view) return;
+
+        this.view.dispatch({
+            changes: { from, to, insert: text }
+        });
+    }
+
+    // Get cursor position
+    getCursor() {
+        if (!this.view) return 0;
+        return this.view.state.selection.main.head;
+    }
+
+    // Set cursor position
+    setCursor(pos) {
+        if (!this.view) return;
+
+        this.view.dispatch({
+            selection: { anchor: pos, head: pos },
+            scrollIntoView: true
+        });
+    }
+
+    // Focus the editor
+    focus() {
+        if (this.view) {
+            this.view.focus();
+        }
     }
 
     // Destroy the editor
